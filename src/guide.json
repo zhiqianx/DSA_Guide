@@ -1,0 +1,2205 @@
+{
+  "chapters": [
+    {
+      "id": "1",
+      "title": "Hash maps & sets",
+      "group": "Arrays & strings",
+      "priority": "Core",
+      "problems": [
+        "1",
+        "49",
+        "128"
+      ],
+      "intro": "Trade memory for fast lookup. A set answers whether something has appeared; a map associates a key with a count, index, group, or other state.",
+      "clues": [
+        "Need a complement, duplicate, frequency, or grouping",
+        "Repeatedly searching earlier elements",
+        "Order is not the main requirement"
+      ],
+      "avoid": "If sorted input lets two pointers solve the task with constant space, consider that. Hashing does not preserve numeric order; use sorting or a TreeMap when ordering matters.",
+      "invariant": "Before processing index i, the map summarizes only the prefix [0,i).",
+      "template": "Map<Key, Value> seen = new HashMap<>();\nfor (Item item : input) {\n    // Query the state needed for this item.\n    // Record an answer if a matching earlier item exists.\n    // Update seen after querying when self-matches are forbidden.\n}",
+      "adapt": "Choose the key by the equivalence you need: raw value, sorted word, frequency signature, or prefix sum. Store an index for reconstruction, a count for multiplicity, and a boolean/set for existence.",
+      "brute": "Try every pair of indices: O(n²) time, O(1) extra space. The repeated work is looking for target-nums[i] in the earlier prefix.",
+      "trace": [
+        "Input [2,7,11,15], target 9; begin with an empty map.",
+        "i=0: need 7, absent. Store 2→0.",
+        "i=1: need 2, found at index 0. Return [0,1]."
+      ],
+      "edges": "Duplicate values such as [3,3], target 6; do not reuse the same index; clarify whether an answer is guaranteed; expected hash cost is not an unconditional worst-case guarantee."
+    },
+    {
+      "id": "2",
+      "title": "Two pointers",
+      "group": "Arrays & strings",
+      "priority": "Core",
+      "problems": [
+        "167",
+        "15",
+        "283"
+      ],
+      "intro": "Coordinate two positions so each movement either eliminates impossible candidates or maintains a useful processed region. Opposite-end pointers exploit order; read/write pointers compact data in place.",
+      "clues": [
+        "Sorted array and a pair target",
+        "In-place filtering or stable compaction",
+        "A proof lets one endpoint be discarded"
+      ],
+      "avoid": "Do not move pointers just because a sum is too small unless ordering supports that elimination. For arbitrary unsorted pair lookup, a hash map is usually simpler.",
+      "invariant": "Any possible pair remains inside the current candidate interval; for read/write scans, the written prefix contains exactly the accepted processed values.",
+      "template": "int left = 0, right = values.length - 1;\nwhile (left < right) {\n    // Compare the pair with the target.\n    // Move left OR right only after proving that endpoint can be eliminated.\n}",
+      "adapt": "For 3Sum, fix one index then solve the remaining pair. For stable filtering, replace opposite ends with read/write indices. Handle duplicates based on whether answers are indices or unique values.",
+      "brute": "Check all pairs, O(n²). Sorting already supplied by Two Sum II lets one comparison remove an entire row of candidate pairs.",
+      "trace": [
+        "[2,7,11,15], target 9: left=0,right=3, sum=17 → discard right.",
+        "left=0,right=2, sum=13 → discard right.",
+        "left=0,right=1, sum=9 → return 1-based [1,2]."
+      ],
+      "edges": "Two-element input; duplicates; correct 0-based versus 1-based result; long arithmetic for sums."
+    },
+    {
+      "id": "3",
+      "title": "Sliding window",
+      "group": "Arrays & strings",
+      "priority": "Core",
+      "problems": [
+        "3",
+        "209",
+        "567",
+        "76"
+      ],
+      "intro": "Maintain a contiguous range and update its state as boundaries move. Fixed windows keep a chosen width; variable windows expand and shrink according to a validity condition.",
+      "clues": [
+        "Substring or contiguous subarray",
+        "Longest/shortest range meeting a condition",
+        "Can update range state on add/remove and safely discard left endpoints"
+      ],
+      "avoid": "Contiguous alone is insufficient. With negative numbers, sum-based expand/shrink rules often fail: use prefix sums, or prefix sums plus a monotonic deque for shortest sum-at-least-K.",
+      "invariant": "For longest-valid-window scans, the window is valid before its length is recorded.",
+      "template": "int left = 0;\nfor (int right = 0; right < n; right++) {\n    // Add input[right] to state.\n    while (/* invalid */) {\n        // Remove input[left] from state.\n        left++;\n    }\n    // Update longest valid answer.\n}",
+      "adapt": "For shortest-valid windows, record the length WHILE valid, then shrink. For fixed width, remove the element falling out and evaluate only full windows. Keep counts synchronized with boundary changes.",
+      "brute": "Enumerate all substrings and check uniqueness from scratch: O(n³). Incremental sets per start improve to O(n²); a shared moving window avoids rescanning starts.",
+      "trace": [
+        "\"abba\": right=0 adds a; window \"a\", best=1.",
+        "right=1 adds b; window \"ab\", best=2.",
+        "right=2 adds b twice: remove a, then the old b; left=2, window \"b\".",
+        "right=3 adds a; window \"ba\", best stays 2."
+      ],
+      "edges": "Empty string; all same characters; a duplicate before the current left boundary; positive-values assumption for sum windows; fixed-size window larger than input."
+    },
+    {
+      "id": "4",
+      "title": "Prefix sums & prefix/suffix accumulation",
+      "group": "Arrays & strings",
+      "priority": "Core",
+      "problems": [
+        "560",
+        "303",
+        "238"
+      ],
+      "intro": "Summarize each prefix once. Subtract two prefix sums for a range total; match earlier prefix sums to count target-sum ranges. Prefix/suffix products extend the idea to a non-subtractive operation.",
+      "clues": [
+        "Many static range queries",
+        "Count subarrays with an exact sum, including negatives",
+        "Combine everything before and after an index"
+      ],
+      "avoid": "Prefix sums do not directly give range minima by subtraction. Frequent updates call for different data structures; product variants need separate reasoning around zeros.",
+      "invariant": "prefix[i] summarizes the first i elements. When counting ranges, the frequency map contains only earlier prefix boundaries.",
+      "template": "Map<Long, Integer> freq = new HashMap<>();\nfreq.put(0L, 1);\nlong sum = 0;\nfor (int x : nums) {\n    sum += x;\n    // Add freq.getOrDefault(sum - target, 0) to the answer.\n    freq.put(sum, freq.getOrDefault(sum, 0) + 1);\n}",
+      "adapt": "Use counts for number of ranges, earliest indices for longest ranges, and a set for existence. For product-except-self, store left products and sweep backward with a right product.",
+      "brute": "Try every start and extend its sum to every end: O(n²) time. A range sum equals currentPrefix-earlierPrefix, so exact-sum counting becomes a lookup.",
+      "trace": [
+        "[1,1,1], k=2. Start freq={0:1}, sum=0, answer=0.",
+        "First 1: sum=1, need -1 absent; record 1.",
+        "Second 1: sum=2, need 0 occurs once; answer=1; record 2.",
+        "Third 1: sum=3, need 1 occurs once; answer=2."
+      ],
+      "edges": "Seed empty prefix; query before insert; zeros create multiple valid starts; negative numbers are supported; sums can overflow int."
+    },
+    {
+      "id": "5",
+      "title": "Sort, then scan",
+      "group": "Searching & ordering",
+      "priority": "Core",
+      "problems": [
+        "56",
+        "49",
+        "179"
+      ],
+      "intro": "Sorting creates structure that makes local comparisons sufficient. Often an unordered global problem becomes a one-pass scan over neighboring candidates.",
+      "clues": [
+        "Group equivalent objects",
+        "Merge or schedule ranges",
+        "A custom ordering makes a greedy/local decision provable"
+      ],
+      "avoid": "Sorting changes input order and costs more than a linear scan. Preserve original indices when needed. A comparator must be consistent; do not invent an ordering without a correctness argument.",
+      "invariant": "The processed sorted prefix has a finalized answer except for the current open group.",
+      "template": "Arrays.sort(items, (a, b) -> Integer.compare(a.key, b.key));\nfor (Item item : items) {\n    // Extend the current group if compatible.\n    // Otherwise finalize it and begin the next group.\n}",
+      "adapt": "Sort by start for merging, by end for interval scheduling, and by a canonical signature for grouping. Largest Number uses concatenation order, not ordinary numeric order.",
+      "brute": "Repeatedly compare and merge overlapping pairs until stable; naive implementations do unnecessary repeated scans. Sorting starts gives a direct O(n log n) solution.",
+      "trace": [
+        "[[1,3],[2,6],[8,10]] is already sorted by start.",
+        "Keep [1,3]; next start 2 <= 3, extend end to 6.",
+        "Next start 8 > 6, finalize [1,6] and begin [8,10]."
+      ],
+      "edges": "Empty input when permitted; equal keys; comparator overflow from a-b; whether sorting the original array is allowed."
+    },
+    {
+      "id": "6",
+      "title": "Binary search: exact & boundary",
+      "group": "Searching & ordering",
+      "priority": "Core",
+      "problems": [
+        "704",
+        "34",
+        "33"
+      ],
+      "intro": "Repeatedly discard half of an ordered candidate space. Decide first whether you need an exact match or the first position satisfying a predicate; their loop contracts differ.",
+      "clues": [
+        "Sorted values",
+        "Find first/last occurrence or insertion position",
+        "One half can be proved irrelevant"
+      ],
+      "avoid": "Sorted-looking data is not enough: establish a monotone predicate or a safe elimination argument. Rotated-array search needs its own sorted-half logic.",
+      "invariant": "Exact closed search keeps any target inside [left,right]. Half-open lower bound keeps the first true boundary between left and right, allowing n.",
+      "template": "int left = 0, right = nums.length;\nwhile (left < right) {\n    int mid = left + (right - left) / 2;\n    if (nums[mid] >= target) {\n        right = mid;\n    } else {\n        left = mid + 1;\n    }\n}\n// left is first index >= target, possibly nums.length.",
+      "adapt": "Use > instead of >= for upper bound. An exact closed search uses right=n-1 and left<=right, with mid±1 updates. Never mix interval conventions midway.",
+      "brute": "Linear search is O(n). An ascending array tells us that every element on one side of mid is also too small or too large.",
+      "trace": [
+        "[-1,0,3,5,9,12], target 9: left=0,right=5,mid=2 → 3 too small.",
+        "left=3,right=5,mid=4 → found 9, return 4.",
+        "If a target is absent, the closed interval eventually becomes empty."
+      ],
+      "edges": "Empty array; one element; absent target; duplicates; answer can be n for boundary search; prevent midpoint overflow."
+    },
+    {
+      "id": "7",
+      "title": "Binary search on the answer",
+      "group": "Searching & ordering",
+      "priority": "Common extension",
+      "problems": [
+        "875",
+        "1011",
+        "410"
+      ],
+      "intro": "Turn an optimization task into a monotone yes/no feasibility test. Search possible answers rather than positions in the input.",
+      "clues": [
+        "Minimize a maximum or find the smallest sufficient capacity/speed",
+        "Checking a proposed answer is easier than constructing the optimum",
+        "If x works, every larger x works (or the reverse)"
+      ],
+      "avoid": "First prove monotonicity and the feasibility routine. A flawed greedy checker makes the entire search wrong even when the binary-search loop is correct.",
+      "invariant": "The minimum feasible answer lies in [low,high], and high is feasible.",
+      "template": "while (low < high) {\n    int mid = low + (high - low) / 2;\n    if (feasible(mid)) {\n        high = mid;\n    } else {\n        low = mid + 1;\n    }\n}\n// Return low: first feasible answer.",
+      "adapt": "Choose tight legal bounds. Multiply number of feasibility checks by their cost. For a largest-feasible search, change the update convention and midpoint carefully rather than copying this loop unchanged.",
+      "brute": "Try each speed from 1 to M and scan piles: O(nM). Feasibility can change only from false to true, allowing logarithmically many scans.",
+      "trace": [
+        "Piles [3,6,7,11], h=8, bounds [1,11]. speed 6 needs 6 hours → high=6.",
+        "speed 3 needs 10 hours → low=4.",
+        "speed 5 needs 8 hours → high=5.",
+        "speed 4 needs 8 hours → high=4; answer 4."
+      ],
+      "edges": "Infeasible inputs if the task permits them; all-zero domains in variants; ceil division; long totals; exactly-k versus at-most-k groups."
+    },
+    {
+      "id": "8",
+      "title": "Interval merging & overlap",
+      "group": "Intervals",
+      "priority": "Core",
+      "problems": [
+        "56",
+        "57",
+        "435"
+      ],
+      "intro": "Represent spans by endpoints and reason about where one starts relative to another’s end. Merging, insertion, and selecting non-overlapping spans share inputs but require different objectives.",
+      "clues": [
+        "Ranges, meetings, reservations, spans",
+        "Merge coverage or insert a range",
+        "Count removals to make ranges compatible"
+      ],
+      "avoid": "Do not treat merging coverage as interval scheduling. Merging usually sorts by start; selecting the most compatible intervals usually sorts by end.",
+      "invariant": "For merging, completed result intervals are disjoint and sorted, and the last one captures all overlap seen so far.",
+      "template": "// After sorting by start:\nfor (int[] interval : intervals) {\n    if (/* no open interval OR next starts after its end */) {\n        // Append a new interval.\n    } else {\n        // Extend the open end with Math.max.\n    }\n}",
+      "adapt": "Decide closed versus half-open endpoints before writing <= or <. Insert Interval can avoid sorting because its input is already sorted and disjoint.",
+      "brute": "Checking each interval against every other gives quadratic pair comparisons and still requires organizing transitive merges. Sorting exposes overlaps in a single forward scan.",
+      "trace": [
+        "Current [1,3], next [2,6]: overlap because 2<=3; merged becomes [1,6].",
+        "Next [8,10] starts after 6; finish [1,6].",
+        "Result [[1,6],[8,10]]."
+      ],
+      "edges": "Nested intervals; touching boundaries; duplicate intervals; negative endpoints; do not overwrite end without taking max."
+    },
+    {
+      "id": "9",
+      "title": "Sweep line & difference events",
+      "group": "Intervals",
+      "priority": "Common extension",
+      "problems": [
+        "1094",
+        "2406",
+        "1109"
+      ],
+      "intro": "Process only positions where something changes. Record signed changes at boundaries, order them, and accumulate active load or coverage.",
+      "clues": [
+        "Maximum simultaneous activity",
+        "Capacity over time or distance",
+        "Many range additions with one final reconstruction"
+      ],
+      "avoid": "Endpoint semantics determine event ordering. For real-valued closed intervals, end+1 is not valid; explicitly process start/end ties. Difference arrays work best on bounded integer coordinates.",
+      "invariant": "After combining events at coordinate x, the running total equals the load on the segment immediately after x under the chosen endpoint convention.",
+      "template": "TreeMap<Integer, Integer> events = new TreeMap<>();\n// For each half-open range [start,end):\nevents.merge(start, delta, Integer::sum);\nevents.merge(end, -delta, Integer::sum);\nint active = 0;\nfor (int change : events.values()) {\n    active += change;\n    // Check capacity or update peak.\n}",
+      "adapt": "For closed integer ranges, subtract at end+1 using a wide coordinate type. For a small dense coordinate range, an array eliminates sorting/map costs.",
+      "brute": "Check every trip against every relevant position or event, potentially O(n²) at O(n) distinct positions. Events summarize each trip using only two updates.",
+      "trace": [
+        "Trips [2,1,5],[3,3,7] yield {1:+2,3:+3,5:-2,7:-3}.",
+        "At 1, onboard=2.",
+        "At 3, onboard=5, exceeding capacity 4 → false."
+      ],
+      "edges": "Pickup and drop-off at the same position; closed endpoints; end+1 overflow; sparse huge coordinates; simultaneous deltas."
+    },
+    {
+      "id": "10",
+      "title": "Linked-list manipulation",
+      "group": "Linked lists",
+      "priority": "Core",
+      "problems": [
+        "206",
+        "21",
+        "19"
+      ],
+      "intro": "Reason in terms of node identity and links, not array indices. Dummy nodes simplify head changes; saved next pointers preserve access while relinking.",
+      "clues": [
+        "Reverse or merge nodes in place",
+        "Remove a node relative to the head/tail",
+        "Head may change as a special case"
+      ],
+      "avoid": "Do not overwrite next before saving the untouched suffix. A linked list has no constant-time indexed access; repeated index-style scans can become quadratic.",
+      "invariant": "For reversal, prev heads the reversed prefix and current heads the original unprocessed suffix.",
+      "template": "ListNode prev = null;\nListNode current = head;\nwhile (current != null) {\n    ListNode next = current.next;\n    current.next = prev;\n    prev = current;\n    current = next;\n}\n// prev is the new head.",
+      "adapt": "Use a dummy before operations that may remove or replace the head. For merging, advance a tail pointer. For nth-from-end, keep a fixed pointer gap rather than a speed ratio.",
+      "brute": "Copy values to an array and build a reversed list: O(n) time and O(n) extra allocation. In-place reversal can retain the linear time while reusing nodes.",
+      "trace": [
+        "1→2→3: prev=null,current=1; save node 2, point 1 to null.",
+        "prev=1,current=2; save node 3, point 2 to 1.",
+        "prev=2,current=3; save null, point 3 to 2.",
+        "current=null; return prev, the chain 3→2→1."
+      ],
+      "edges": "Empty list; one node; deleting head; losing suffix; creating accidental cycles; whether mutation is allowed."
+    },
+    {
+      "id": "11",
+      "title": "Fast & slow pointers",
+      "group": "Linked lists",
+      "priority": "Common extension",
+      "problems": [
+        "141",
+        "876",
+        "287"
+      ],
+      "intro": "Move two pointers through the same successor relation at different speeds. This reveals midpoints or cycles without storing all visited nodes.",
+      "clues": [
+        "Cycle detection with constant space",
+        "Find a midpoint in one traversal",
+        "Values define a next-index functional graph"
+      ],
+      "avoid": "Use node identity, not equal values, for cycle detection. Array-as-linked-list tricks require valid index ranges and a specific graph structure.",
+      "invariant": "After t iterations, slow has moved t edges and fast 2t; in a cycle their relative position advances modulo its length.",
+      "template": "Node slow = head, fast = head;\nwhile (fast != null && fast.next != null) {\n    slow = slow.next;\n    fast = fast.next.next;\n    if (slow == fast) {\n        // Cycle detected.\n    }\n}",
+      "adapt": "For midpoint, return slow after termination. For cycle entry, reset one pointer to the start after meeting, then move both one step until they meet again. A fixed n-node gap is a separate two-pointer variant.",
+      "brute": "Store every visited node in a set: expected O(n) time and O(n) memory. Different-speed pointers avoid the visited set.",
+      "trace": [
+        "Cycle 1→2→3→2: initially slow=fast=node1.",
+        "First move: slow=node2, fast=node3.",
+        "Second move: slow=node3, fast=node3 → cycle detected."
+      ],
+      "edges": "Check fast.next before double movement; self-loop; no cycle; compare after moving; even-length midpoint convention."
+    },
+    {
+      "id": "12",
+      "title": "Stacks: matching & simulation",
+      "group": "Stacks & queues",
+      "priority": "Core",
+      "problems": [
+        "20",
+        "150",
+        "155"
+      ],
+      "intro": "Use last-in-first-out order when the most recent unfinished item must be resolved first. Store extra metadata when undoing an operation must restore previous state.",
+      "clues": [
+        "Nested delimiters",
+        "Postfix expressions or undo history",
+        "Need a value and its historical minimum"
+      ],
+      "avoid": "A queue is for oldest-first processing, such as BFS. A plain stack does not by itself enforce nearest-greater relationships; monotonic stacks add an ordering invariant.",
+      "invariant": "The stack represents exactly the unresolved obligations or intermediate results, newest on top.",
+      "template": "Deque<State> stack = new ArrayDeque<>();\nfor (Token token : tokens) {\n    if (/* begins unresolved work */) {\n        stack.push(/* state */);\n    } else {\n        // Validate availability, then pop/resolve the most recent state.\n    }\n}",
+      "adapt": "For brackets, store expected closers. For postfix arithmetic, preserve operand order. For Min Stack, store the minimum alongside every pushed value.",
+      "brute": "Repeatedly remove adjacent matching pairs until no change: repeated scans/string rebuilding can be O(n²). A stack resolves each bracket once.",
+      "trace": [
+        "\"([])\": read ( → push ).",
+        "Read [ → push ]; top is ].",
+        "Read ] → pop matching ].",
+        "Read ) → pop matching ); stack empty → valid."
+      ],
+      "edges": "Early closer; leftover opener; wrong nesting; empty stack operations; division/subtraction operand order; ArrayDeque rejects null."
+    },
+    {
+      "id": "13",
+      "title": "Monotonic stack",
+      "group": "Stacks & queues",
+      "priority": "Common extension",
+      "problems": [
+        "739",
+        "496",
+        "84"
+      ],
+      "intro": "Keep unresolved candidates in increasing or decreasing order. A new value resolves and removes candidates that it dominates.",
+      "clues": [
+        "Next greater/smaller element",
+        "Nearest boundary satisfying a comparison",
+        "Histogram width determined by smaller bars"
+      ],
+      "avoid": "The direction and strictness depend on the task. Equal temperatures are not warmer. Use indices if you need distance or must distinguish duplicates.",
+      "invariant": "For Daily Temperatures, stack indices are unresolved and their temperatures are nonincreasing from bottom to top.",
+      "template": "Deque<Integer> stack = new ArrayDeque<>();\nfor (int i = 0; i < n; i++) {\n    while (!stack.isEmpty() && values[i] > values[stack.peek()]) {\n        int old = stack.pop();\n        // i is the first greater index for old.\n    }\n    stack.push(i);\n}",
+      "adapt": "Reverse comparisons for next smaller; reverse traversal for other directional variants. For histograms, popping fixes a rectangle’s right boundary, while the new top gives its left boundary.",
+      "brute": "For each day, scan forward to the first warmer day: O(n²). A stack keeps all unresolved days and settles each once.",
+      "trace": [
+        "Temperatures [73,74,75,71]: push index0.",
+        "74 pops index0 → answer[0]=1; push index1.",
+        "75 pops index1 → answer[1]=1; push index2.",
+        "71 cannot resolve 75; push index3. Unresolved answers stay zero."
+      ],
+      "edges": "Equal values; fully increasing/decreasing arrays; storing values instead of indices when distances are required; sentinel flush for histogram."
+    },
+    {
+      "id": "14",
+      "title": "Monotonic deque",
+      "group": "Stacks & queues",
+      "priority": "Lower priority",
+      "problems": [
+        "239",
+        "1438",
+        "862"
+      ],
+      "intro": "Maintain ordered candidates while also expiring candidates from the oldest end. A deque supports both removal reasons efficiently.",
+      "clues": [
+        "Sliding-window maximum or minimum",
+        "Need ordered candidates and age-based expiration",
+        "Dominated prefixes in shortest-subarray problems"
+      ],
+      "avoid": "A heap can find extrema but may need lazy expiration. A deque works when a dominance proof lets you permanently discard candidates; not every window statistic has one.",
+      "invariant": "For window maxima, indices increase front-to-back while their values strictly decrease; every index is still within the window.",
+      "template": "Deque<Integer> deque = new ArrayDeque<>();\nfor (int i = 0; i < n; i++) {\n    while (!deque.isEmpty() && deque.peekFirst() <= i - k) {\n        deque.removeFirst();\n    }\n    while (!deque.isEmpty() && nums[deque.peekLast()] <= nums[i]) {\n        deque.removeLast();\n    }\n    deque.addLast(i);\n    // Front is the maximum; report after a full window exists.\n}",
+      "adapt": "Use two deques for both max and min. For negative-number shortest sum ranges, use increasing prefix sums and prove separate front/back removal rules.",
+      "brute": "Scan each k-element window for its maximum: O(nk). Keeping only undominated unexpired indices avoids those repeated scans.",
+      "trace": [
+        "[1,3,-1,-3,5], k=3: insert index0.",
+        "Insert 3 at index1, discard index0 because it is smaller and older.",
+        "Insert -1; first full window max is 3. Insert -3; next max stays 3.",
+        "Insert 5: expire index1, discard smaller back candidates; new max is 5."
+      ],
+      "edges": "k=1; k=n; equal values; expire by index, not value; negative numbers in prefix-deque variants."
+    },
+    {
+      "id": "15",
+      "title": "Tree DFS & recursive returns",
+      "group": "Trees",
+      "priority": "Core",
+      "problems": [
+        "104",
+        "543",
+        "236"
+      ],
+      "intro": "Define precisely what a recursive call returns for one subtree. Combine child results to answer the parent, and separately track global answers when they cannot be extended upward.",
+      "clues": [
+        "Subtree properties",
+        "Height, path, ancestor, or structural comparison",
+        "A parent answer can be built from child answers"
+      ],
+      "avoid": "Trees do not need a visited set when traversing child links without cycles. General graphs do. Deep skewed trees can exceed Java’s recursion stack.",
+      "invariant": "Each call returns the promised summary for its entire subtree; the null case must be compatible with the combination rule.",
+      "template": "Result dfs(TreeNode node) {\n    if (node == null) {\n        return /* empty-subtree result */;\n    }\n    Result left = dfs(node.left);\n    Result right = dfs(node.right);\n    return /* combine node, left, right */;\n}",
+      "adapt": "Height returns one downward branch. Diameter combines two branches for the global answer but returns only height. LCA returns a found target/ancestor, not a numeric depth.",
+      "brute": "Enumerate root-to-leaf paths and store them, potentially copying O(nh) data. A height return summarizes each subtree once without retaining paths.",
+      "trace": [
+        "Tree 3 with leaves 9 and subtree 20→(15,7). Null children return 0.",
+        "Leaves 9,15,7 each return 1.",
+        "Node20 returns 1+max(1,1)=2.",
+        "Root3 returns 1+max(1,2)=3."
+      ],
+      "edges": "Null root; one node; skewed tree; edges versus nodes; reset global fields between calls; LCA presence assumptions."
+    },
+    {
+      "id": "16",
+      "title": "Tree BFS & levels",
+      "group": "Trees",
+      "priority": "Core",
+      "problems": [
+        "102",
+        "199",
+        "111"
+      ],
+      "intro": "Process nodes by increasing depth using a queue. Capture a layer’s size before appending its children so one iteration corresponds to exactly one level.",
+      "clues": [
+        "Level order or per-depth aggregation",
+        "Rightmost/leftmost node at each depth",
+        "Shortest root-to-leaf distance"
+      ],
+      "avoid": "BFS can use substantial memory on wide trees. DFS may use less memory there but more on deep chains. A null child is not a leaf.",
+      "invariant": "At the beginning of each outer iteration, the queue contains exactly the next depth’s nodes in left-to-right order.",
+      "template": "Queue<TreeNode> queue = new ArrayDeque<>();\n// Enqueue root only if nonnull.\nwhile (!queue.isEmpty()) {\n    int levelSize = queue.size();\n    for (int i = 0; i < levelSize; i++) {\n        TreeNode node = queue.poll();\n        // Process and enqueue each nonnull child.\n    }\n}",
+      "adapt": "For right-side view, record the final node in each left-to-right level. For minimum depth, return at the first actual leaf. Do not use a changing queue.size() as the inner-loop bound.",
+      "brute": "Repeatedly traverse the tree to collect depth 0, then depth 1, etc.: O(nh) worst case. One queue traversal processes every node once.",
+      "trace": [
+        "Queue [3], capture size1 → output [3], enqueue 9,20.",
+        "Queue [9,20], capture size2 → output [9,20], enqueue 15,7.",
+        "Queue [15,7] → output [15,7]; queue becomes empty."
+      ],
+      "edges": "Null root; one-sided trees; broad levels; queue size snapshot; do not enqueue null with ArrayDeque."
+    },
+    {
+      "id": "17",
+      "title": "BST ordering & inorder",
+      "group": "Trees",
+      "priority": "Common extension",
+      "problems": [
+        "98",
+        "230",
+        "235"
+      ],
+      "intro": "Exploit the global binary-search-tree property: every value in a left subtree is smaller, and every value in a right subtree larger, under a strict BST convention.",
+      "clues": [
+        "Explicit BST input",
+        "Rank queries through sorted inorder traversal",
+        "Navigate by comparing target values"
+      ],
+      "avoid": "A binary tree is not automatically a BST. Checking only parent-child values does not validate all descendants. Balanced-tree complexity cannot be assumed.",
+      "invariant": "Each recursive node must lie strictly within its inherited (low,high) interval; inorder visits valid BST values in increasing order.",
+      "template": "boolean valid(TreeNode node, long low, long high) {\n    if (node == null) return true;\n    if (node.val <= low || node.val >= high) return false;\n    return valid(node.left, low, node.val)\n        && valid(node.right, node.val, high);\n}",
+      "adapt": "For kth smallest, count inorder visits and stop early. For BST LCA, descend only while both target values lie on the same side. Clarify duplicate placement if duplicates are allowed.",
+      "brute": "For each node, rescan its left and right subtrees to check all descendants: O(n²) worst case. Inherited bounds capture those constraints once.",
+      "trace": [
+        "Invalid tree [5,1,4,null,null,3,6]: root5 receives (-∞,+∞).",
+        "Node1 must be in (-∞,5) and is valid.",
+        "Node4 must be in (5,+∞), but 4<=5 → reject immediately."
+      ],
+      "edges": "Integer extreme values; strict versus non-strict ordering; skewed trees; target nodes absent; valid k assumption."
+    },
+    {
+      "id": "18",
+      "title": "Graph/grid DFS & BFS",
+      "group": "Graphs",
+      "priority": "Core",
+      "problems": [
+        "200",
+        "994",
+        "547"
+      ],
+      "intro": "Model states as vertices and legal moves as edges. Traverse connected components with DFS/BFS; use BFS layers for shortest paths when every move has equal cost.",
+      "clues": [
+        "Connectivity, islands, reachability",
+        "Fewest equal-cost moves",
+        "Several simultaneous spreading sources"
+      ],
+      "avoid": "Ordinary BFS does not solve arbitrary weighted shortest paths. Include all relevant state in visited keys: position alone may be insufficient if keys, remaining eliminations, or other resources matter.",
+      "invariant": "A state is marked when discovered so it is scheduled only once; BFS discovery distances are nondecreasing.",
+      "template": "Queue<State> queue = new ArrayDeque<>();\n// Mark and enqueue every source.\nwhile (!queue.isEmpty()) {\n    State current = queue.poll();\n    for (State next : neighbors(current)) {\n        if (/* not visited */) {\n            // Mark before enqueueing.\n            queue.offer(next);\n        }\n    }\n}",
+      "adapt": "For components, start a new traversal at each unvisited vertex. For multi-source BFS, enqueue all sources at distance zero. A grid can be marked in place if mutation is allowed.",
+      "brute": "Starting an independent flood fill from every land cell without sharing visited information can revisit an island many times. One shared visitation state processes each cell once.",
+      "trace": [
+        "Grid [\"110\",\"010\",\"001\"]: first land (0,0) starts island1.",
+        "Flood marks (0,0),(0,1),(1,1).",
+        "The later scan skips marked cells.",
+        "Cell (2,2) starts island2; no adjacent land → total2."
+      ],
+      "edges": "Disconnected graph; isolated nodes; cycles; four versus eight directions; rectangular bounds; mutation and stack overflow."
+    },
+    {
+      "id": "19",
+      "title": "Topological sort",
+      "group": "Graphs",
+      "priority": "Common extension",
+      "problems": [
+        "207",
+        "210",
+        "802"
+      ],
+      "intro": "Order a directed acyclic graph so every dependency appears before its dependent. Kahn’s algorithm repeatedly removes vertices with no remaining incoming dependencies.",
+      "clues": [
+        "Prerequisites or task dependency ordering",
+        "Can all tasks finish?",
+        "Detect a directed cycle through failed dependency elimination"
+      ],
+      "avoid": "Not a general undirected-cycle algorithm. Edge direction matters: prerequisite→dependent. A valid ordering need not be unique.",
+      "invariant": "Every queued node has zero incoming edges from unprocessed nodes; every output node appears after all its prerequisites.",
+      "template": "// Build indegrees and adjacency lists.\n// Enqueue all indegree-zero vertices.\nwhile (!queue.isEmpty()) {\n    int u = queue.poll();\n    processed++;\n    for (int v : graph.get(u)) {\n        if (--indegree[v] == 0) queue.offer(v);\n    }\n}\n// A cycle exists exactly when processed < vertexCount.",
+      "adapt": "Record the popped nodes for an ordering. For eventual-safe states, reverse edges and eliminate original terminal nodes. DFS color states provide an alternative directed-cycle test.",
+      "brute": "Try every possible task permutation and validate dependencies: factorial work. Incoming-dependency counts identify legal next tasks directly.",
+      "trace": [
+        "Courses0,1 with prerequisite [1,0]: edge0→1, indegrees [0,1].",
+        "Queue starts [0]; process0 and reduce indegree1 to0.",
+        "Enqueue/process1; completed=2, so all courses can finish.",
+        "Adding edge1→0 leaves no initial zero-indegree node → cycle."
+      ],
+      "edges": "Isolated vertices; empty prerequisites; disconnected components; duplicate edges counted consistently; return partial ordering only if the task permits it."
+    },
+    {
+      "id": "20",
+      "title": "Union-find / disjoint sets",
+      "group": "Graphs",
+      "priority": "Common extension",
+      "problems": [
+        "684",
+        "547",
+        "1319"
+      ],
+      "intro": "Maintain a partition into connected components as undirected edges are added. Each component has a representative root; union merges roots.",
+      "clues": [
+        "Repeated connectivity queries while adding edges",
+        "Count components",
+        "Detect whether an undirected edge joins already-connected vertices"
+      ],
+      "avoid": "DSU does not find shortest paths or actual connecting routes. Standard DSU does not support arbitrary deletions or directed-cycle detection.",
+      "invariant": "Two vertices have the same representative exactly when processed edges connect them.",
+      "template": "int find(int x) {\n    if (parent[x] != x) parent[x] = find(parent[x]);\n    return parent[x];\n}\n// union(a,b): find roots, return false if equal;\n// otherwise attach smaller tree to larger and update size.",
+      "adapt": "Use path compression with size/rank balancing. Decrement component count only on a successful union. For sparse labels, map labels to compact indices first.",
+      "brute": "Before each edge, run DFS to ask whether its endpoints are connected: O(E(V+E)) over all insertions. DSU retains the evolving connectivity summary.",
+      "trace": [
+        "Edges [1,2],[1,3],[2,3]; initially each vertex is its own root.",
+        "Union1,2 succeeds; union1,3 succeeds.",
+        "For2,3 both finds return the same root → redundant edge [2,3]."
+      ],
+      "edges": "One-based labels; isolated vertices; repeated edges; initialize every node; rank is not component size; failed unions must not change counts."
+    },
+    {
+      "id": "21",
+      "title": "Dijkstra & best-first paths",
+      "group": "Graphs",
+      "priority": "Common extension",
+      "problems": [
+        "743",
+        "1631",
+        "1514"
+      ],
+      "intro": "Expand the smallest tentative path cost first. Relax neighbors when a better route is found; with nonnegative edge costs, the smallest unsettled distance is final.",
+      "clues": [
+        "Weighted shortest paths with nonnegative weights",
+        "An accumulated path cost is monotone under extension",
+        "Bottleneck or probability variants have a compatible best-first proof"
+      ],
+      "avoid": "Negative edges invalidate standard Dijkstra finalization. For equal weights, BFS is simpler. A heap alone does not prove a new path-cost formula is safe.",
+      "invariant": "Each nonstale popped state has the best attainable distance to its vertex; stored distances are the best routes discovered so far.",
+      "template": "// Set source distance=0; all others=infinity; heap contains source.\nwhile (!heap.isEmpty()) {\n    State state = heap.poll();\n    if (state.cost != dist[state.node]) continue;\n    for (Edge edge : graph.get(state.node)) {\n        long candidate = state.cost + edge.weight;\n        if (candidate < dist[edge.to]) {\n            dist[edge.to] = candidate;\n            heap.offer(new State(candidate, edge.to));\n        }\n    }\n}",
+      "adapt": "Use max(current,edge) for bottleneck effort; use a max-heap and multiplication for probabilities in [0,1]. Store parents if you need to reconstruct a route. Lazy heap duplicates need stale-entry checks.",
+      "brute": "Repeatedly relax all edges for up to V-1 passes (Bellman–Ford): O(VE). Nonnegative weights allow a heap to focus work on the next finalized vertex.",
+      "trace": [
+        "Source2; edges2→1(1),2→3(1),3→4(1). Start distances [∞,0,∞,∞] for nodes1..4.",
+        "Pop2 at0; set dist1=1,dist3=1.",
+        "Pop1 and3 at1 in either order; node3 sets dist4=2.",
+        "Pop4 at2. Maximum distance is2."
+      ],
+      "edges": "Unreachable vertices; zero-weight edges; stale entries; directed versus undirected edges; wide distance sums; comparator overflow."
+    },
+    {
+      "id": "22",
+      "title": "Heaps: Top K, merging & medians",
+      "group": "Heaps",
+      "priority": "Core",
+      "problems": [
+        "347",
+        "23",
+        "295"
+      ],
+      "intro": "A heap exposes the best current candidate without fully sorting everything. Keep the weakest retained Top-K item at the root, frontier heads for merging, or two balanced halves for medians.",
+      "clues": [
+        "Top/bottom K rather than a complete sort",
+        "Repeated next-best extraction",
+        "Sorted streams or online median"
+      ],
+      "avoid": "Heap iteration is not sorted order. PriorityQueue.remove(Object) and contains are linear. Changing a stored object’s priority does not automatically repair the heap.",
+      "invariant": "For Top K, the size-k min-heap contains the strongest k candidates processed so far; its root is the weakest retained candidate.",
+      "template": "PriorityQueue<Item> heap = new PriorityQueue<>(byIncreasingScore);\nfor (Item item : items) {\n    heap.offer(item);\n    if (heap.size() > k) heap.poll();\n}\n// Heap holds Top K; poll order is weakest-to-strongest.",
+      "adapt": "Merge K lists: heap one head per list and replace the popped head with its successor. Median: lower max-heap and upper min-heap, ordered and balanced. Define tie-breaking if the output requires it.",
+      "brute": "Count frequencies, then sort all u unique values: expected O(n+u log u). A size-k heap reduces selection work when k is small.",
+      "trace": [
+        "[1,1,1,2,2,3] → frequencies {1:3,2:2,3:1}. k=2.",
+        "Insert1 and2; min-heap root is2 with frequency2.",
+        "Insert3, size3; pop3 because it has frequency1.",
+        "Retained values are1 and2; output order is irrelevant."
+      ],
+      "edges": "k=1 or k=unique count; fewer than k values in variants; equal priorities; null list heads; median averaging overflow; empty median query."
+    },
+    {
+      "id": "23",
+      "title": "Backtracking",
+      "group": "Backtracking",
+      "priority": "Core",
+      "problems": [
+        "78",
+        "46",
+        "39",
+        "79"
+      ],
+      "intro": "Explore a decision tree while maintaining one mutable partial answer. Choose, recurse, and undo so sibling branches start from the same state.",
+      "clues": [
+        "Generate all subsets, arrangements, or combinations",
+        "Small input with exponentially many valid outputs",
+        "Constraints permit pruning partial choices"
+      ],
+      "avoid": "For only a count or optimum with overlapping states, DP may avoid enumerating all possibilities. Never claim polynomial time when the output itself is exponential.",
+      "invariant": "At function entry, path represents exactly the choices on the current branch; every return restores the caller’s state.",
+      "template": "void search(State state, List<Integer> path) {\n    if (/* complete */) {\n        result.add(new ArrayList<>(path));\n        return;\n    }\n    for (Choice choice : choices(state)) {\n        if (/* invalid */) continue;\n        // Apply choice.\n        search(/* next state */, path);\n        // Undo choice exactly.\n    }\n}",
+      "adapt": "Subsets save every path and advance a start index. Permutations use a used array. Reusable combinations recurse from i; one-use combinations from i+1. Duplicate inputs require same-depth duplicate skipping.",
+      "brute": "Enumerate every bitmask and copy selected values: O(n2^n). Backtracking has the same unavoidable output order but gives flexible pruning and a reusable decision-tree structure.",
+      "trace": [
+        "nums=[1,2]: save [] at the root.",
+        "Choose1 → save [1]; choose2 → save [1,2]; undo2, undo1.",
+        "Choose2 from root → save [2]; undo2.",
+        "All four subsets appear once because indices only increase."
+      ],
+      "edges": "Copy path when saving; undo flags and values; combinations versus permutations; repeated candidates; valid pruning needs a proof (e.g., positivity)."
+    },
+    {
+      "id": "24",
+      "title": "1D DP & reachable prefixes",
+      "group": "Dynamic programming",
+      "priority": "Core",
+      "problems": [
+        "139",
+        "70",
+        "198",
+        "714"
+      ],
+      "intro": "Store answers to overlapping smaller states. Start by defining what one entry means; then derive transitions from a final choice rather than guessing a recurrence.",
+      "clues": [
+        "A sequence of local choices affects future options",
+        "Same suffix/prefix state is reached by multiple paths",
+        "Count, decide feasibility, or optimize without enumerating every path"
+      ],
+      "avoid": "Greedy is valid only if a local choice can be proved safe. Word Break is a useful counterexample: an early matching word need not belong to a successful segmentation.",
+      "invariant": "For Word Break, reachable[i] is true exactly when the first i characters can be fully segmented; reachable[0]=true is the empty-prefix base case.",
+      "template": "boolean[] reachable = new boolean[n + 1];\nreachable[0] = true;\nfor (int end = 1; end <= n; end++) {\n    for (int start = 0; start < end; start++) {\n        if (reachable[start] && validPiece(start, end)) {\n            reachable[end] = true;\n            break;\n        }\n    }\n}",
+      "adapt": "Boolean OR for feasibility, addition for counts, min/max for optimization. Memoization caches recursive states; bottom-up orders their dependencies. Rolling state is safe only if older entries are never needed.",
+      "brute": "Recursively try every word boundary with no cache; repeated suffix decisions can cause exponential branching. Cache each prefix/suffix state to avoid recomputing it.",
+      "trace": [
+        "s=\"aaaaaaa\", dictionary {\"aaa\",\"aaaa\"}; reachable[0]=true.",
+        "end1,2 stay false; end3 becomes true using [0,3).",
+        "end4 becomes true using [0,4); end5 stays false.",
+        "end6 uses reachable3 + \"aaa\"; end7 uses reachable3 + \"aaaa\" → true.",
+        "A greedy aaa+aaa leaves one a, but DP preserves the successful alternative."
+      ],
+      "edges": "Empty-prefix base case; impossible states; update order; substring copying costs in Java; rolling variables overwritten too early."
+    },
+    {
+      "id": "25",
+      "title": "Grid DP",
+      "group": "Dynamic programming",
+      "priority": "Common extension",
+      "problems": [
+        "62",
+        "64",
+        "63"
+      ],
+      "intro": "Store the answer for reaching each cell when legal moves form an acyclic dependency structure, commonly right/down movement.",
+      "clues": [
+        "Count or optimize right/down paths",
+        "Cell depends only on already-computed neighbors",
+        "Obstacles or costs modify a local recurrence"
+      ],
+      "avoid": "If movement can cycle in all directions, simple row-major DP is generally invalid. Use graph traversal or shortest-path methods unless another acyclic order exists.",
+      "invariant": "When computing a cell, all of its predecessor states are already final.",
+      "template": "for (int r = 0; r < rows; r++) {\n    for (int c = 0; c < cols; c++) {\n        // Handle blocked cells and origin first.\n        // Combine valid above/left predecessor states.\n    }\n}",
+      "adapt": "Use sum for path counts and min+cellCost for minimum cost. Rolling rows retain above in dp[c] and updated left in dp[c-1]. Set obstacle entries to zero, not merely skip them.",
+      "brute": "Enumerate all right/down paths: the number grows combinatorially. Many paths reach the same cell; store that cell’s answer once.",
+      "trace": [
+        "m=3,n=3: first row [1,1,1].",
+        "Second row: [1,2,3], because each cell adds above and left.",
+        "Third row: [1,3,6].",
+        "Bottom-right contains6 possible paths."
+      ],
+      "edges": "Single row/column; blocked origin/end; zero paths; boundary initialization; count overflow; accidental input mutation."
+    },
+    {
+      "id": "26",
+      "title": "Knapsack & coin-change DP",
+      "group": "Dynamic programming",
+      "priority": "Common extension",
+      "problems": [
+        "416",
+        "322",
+        "518"
+      ],
+      "intro": "Index states by a resource total such as sum or capacity. Distinguish using each item once from unlimited reuse, and distinguish counting from minimizing.",
+      "clues": [
+        "Subset reaches a target sum",
+        "Capacity or budget bounded by a manageable integer",
+        "Minimum coins or number of combinations"
+      ],
+      "avoid": "O(nS) is pseudo-polynomial and may be infeasible when S is huge. Negative item values invalidate simple 0..target indexing. Loop order changes which choices are legal.",
+      "invariant": "For 0/1 DP after item i, dp[s] uses only processed items, each at most once.",
+      "template": "boolean[] dp = new boolean[target + 1];\ndp[0] = true;\nfor (int value : nums) {\n    for (int sum = target; sum >= value; sum--) {\n        dp[sum] = dp[sum] || dp[sum - value];\n    }\n}",
+      "adapt": "0/1 items: scan sums down. Unlimited items: scan up. Count unordered combinations: item loop outside. Count ordered sequences: sum loop outside. Minimum coin counts use min and an unreachable sentinel.",
+      "brute": "Try all 2^n subsets. Different subsets often reach the same sum at the same item stage, so DP merges those equivalent states.",
+      "trace": [
+        "[1,5,11,5] totals22; target11; initially only sum0 reachable.",
+        "After1: sums0,1. After first5: 0,1,5,6.",
+        "Processing11 makes sum11 reachable directly.",
+        "Return true: subset [11] and remaining [1,5,5]."
+      ],
+      "edges": "Odd total; target zero; sentinel arithmetic; downward versus upward scan; duplicate denominations; counting order."
+    },
+    {
+      "id": "27",
+      "title": "Sequence & two-string DP",
+      "group": "Dynamic programming",
+      "priority": "Common extension",
+      "problems": [
+        "1143",
+        "72",
+        "300"
+      ],
+      "intro": "For two sequences, track a pair of prefix lengths. For a single subsequence, an endpoint state often captures which earlier choices can extend into the current element.",
+      "clues": [
+        "Subsequence rather than substring",
+        "Compare or transform two strings",
+        "Choose/skip characters while preserving order"
+      ],
+      "avoid": "Subsequences need not be contiguous. Longest common substring uses a different recurrence. An LIS tails array gives length but is not necessarily an actual subsequence.",
+      "invariant": "LCS dp[i][j] is the best shared subsequence length of a[0:i] and b[0:j]. Empty-prefix answers are zero.",
+      "template": "for (int i = 1; i <= m; i++) {\n    for (int j = 1; j <= n; j++) {\n        if (a.charAt(i - 1) == b.charAt(j - 1)) {\n            dp[i][j] = dp[i - 1][j - 1] + 1;\n        } else {\n            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);\n        }\n    }\n}",
+      "adapt": "Edit distance minimizes insert/delete/replace costs. LIS endpoint DP compares all earlier smaller values; the O(n log n) extension keeps minimal tails and uses lower bound. Retain parent/choice data to reconstruct a sequence.",
+      "brute": "Enumerate subsequences of one string and test them against the other: exponential work. Prefix pairs repeat, so an m×n table replaces branching with shared states.",
+      "trace": [
+        "a=\"abc\", b=\"ac\"; start with a zero row/column.",
+        "After a: row [0,1,1].",
+        "After b: row [0,1,1], since b matches neither character.",
+        "After c: row [0,1,2] using diagonal+1 at c/c; answer2."
+      ],
+      "edges": "Empty strings; repeated letters; strict versus non-strict LIS; prefix lengths versus character indices; reconstructing versus only computing length."
+    },
+    {
+      "id": "28",
+      "title": "Greedy",
+      "group": "Greedy",
+      "priority": "Core",
+      "problems": [
+        "55",
+        "435",
+        "121"
+      ],
+      "intro": "Make a local choice that can be proved safe, or maintain a compressed summary sufficient for all future choices. The proof is the method, not an afterthought.",
+      "clues": [
+        "An exchange argument preserves an optimum",
+        "A farther-reaching state dominates weaker states",
+        "Sorting exposes a safe first choice"
+      ],
+      "avoid": "Do not assume local improvement implies global optimality. Coin denominations [1,3,4] with amount6 defeat largest-coin-first; Word Break defeats first-match-first.",
+      "invariant": "For Jump Game, every index up to farthest is reachable from the processed reachable prefix.",
+      "template": "int farthest = 0;\nfor (int i = 0; i < nums.length; i++) {\n    if (i > farthest) return false;\n    farthest = Math.max(farthest, i + nums[i]);\n}\nreturn true;",
+      "adapt": "Interval scheduling chooses earliest finish and uses an exchange proof. Stock profit retains the minimum earlier price. Explain why discarded alternatives can never improve the answer.",
+      "brute": "Try every possible jump sequence: exponential in the worst case. A DP can track reachable indices in O(n²); the contiguous reachable frontier compresses it to one value.",
+      "trace": [
+        "[2,3,1,1,4]: at index0, farthest=max(0,0+2)=2.",
+        "Index1 is reachable; farthest=max(2,1+3)=4.",
+        "Last index is now covered → true.",
+        "For [3,2,1,0,4], frontier stalls at3; index4 is unreachable."
+      ],
+      "edges": "Zero jumps; first/last index; one element; unsupported greedy choices; maintaining coverage is not the same as jumping to the largest immediate value."
+    },
+    {
+      "id": "29",
+      "title": "Tries & prefix search",
+      "group": "Strings & specialized tools",
+      "priority": "Common extension",
+      "problems": [
+        "208",
+        "211",
+        "648"
+      ],
+      "intro": "Store words as shared character paths. This makes prefix existence and prefix-guided branching explicit instead of comparing every stored word.",
+      "clues": [
+        "Many prefix queries",
+        "Dictionary wildcard matching",
+        "Shortest root prefix or prefix-pruned word search"
+      ],
+      "avoid": "For exact membership alone, a hash set may be simpler and more compact. Fixed 26-child arrays assume lowercase English and spend memory on empty child slots.",
+      "invariant": "The node after consuming a prefix represents exactly that prefix; terminal state distinguishes a stored word from a partial path.",
+      "template": "Node node = root;\nfor (char letter : word.toCharArray()) {\n    int index = letter - 'a';\n    // Insert: create child if absent.\n    // Search: fail if absent.\n    node = node.next[index];\n}\n// Exact word search requires node.end; prefix search does not.",
+      "adapt": "For dot wildcards, DFS into each child. For root replacement, stop at the first terminal. Use a map of children for broader alphabets. Combine trie + backtracking for multiword board search.",
+      "brute": "Store a list of words and scan each for every prefix query: O(D·L) in a simple worst-case model with D words and query length L. A trie follows a single prefix path.",
+      "trace": [
+        "Insert \"apple\": create/follow a→p→p→l→e; mark only e terminal.",
+        "search(\"app\") follows a→p→p but terminal=false → false.",
+        "startsWith(\"app\") reaches a node → true.",
+        "Insert \"app\" marks that p terminal; exact search now succeeds."
+      ],
+      "edges": "Prefix versus complete word; repeated insertions; alphabet constraints; empty string policy; wildcard explosion; fixed child-array memory."
+    },
+    {
+      "id": "30",
+      "title": "Bit manipulation",
+      "group": "Strings & specialized tools",
+      "priority": "Common extension",
+      "problems": [
+        "136",
+        "191",
+        "338"
+      ],
+      "intro": "Use fixed-width binary representation directly. XOR cancels paired values, masks isolate flags, and shifts relate neighboring binary states.",
+      "clues": [
+        "Every value repeats except one",
+        "Subset/flag representation",
+        "Count or test set bits with constant-width arithmetic"
+      ],
+      "avoid": "XOR cancellation depends on the exact repetition pattern. Twice-except-one differs from three-times-except-one. Java signed shifts and overflow need explicit reasoning.",
+      "invariant": "The running XOR equals the XOR of the processed prefix; paired values cancel regardless of order.",
+      "template": "int answer = 0;\nfor (int x : nums) {\n    answer ^= x;\n}\n// Useful: n & (n - 1) clears the lowest set bit.\n// (mask & (1 << bit)) != 0 tests a bit.",
+      "adapt": "Use 1L<<bit for long masks. >>> is zero-fill right shift; >> preserves the sign bit. Java masks shift distances (int: mod32, long: mod64), so validate the bit range.",
+      "brute": "Count values in a map: expected O(n) time and O(n) space. XOR uses the promised pair structure to eliminate that memory.",
+      "trace": [
+        "[4,1,2,1,2]: running XOR starts0.",
+        "After4,1,2 the result is7.",
+        "XOR1 gives6; XOR2 gives4.",
+        "The repeated1s and2s cancel, leaving4."
+      ],
+      "edges": "Negative ints; zero; bit31; shift width; operator precedence; distinguish O(number of bits) from O(1) at fixed machine width."
+    }
+  ],
+  "problems": {
+    "1": {
+      "id": "1",
+      "title": "Two Sum",
+      "diff": "Easy",
+      "prompt": "Return indices of two different elements whose sum equals target. Exactly one answer exists.",
+      "hints": [
+        "For each number, what other number would complete the pair?",
+        "Store earlier values and their indices; look up the complement before inserting the current value."
+      ],
+      "approach": "A map remembers exactly the processed prefix. Checking before insertion prevents reusing the same index.",
+      "code": "public int[] twoSum(int[] nums, int target) {\n    Map<Integer, Integer> seen = new HashMap<>();\n    for (int i = 0; i < nums.length; i++) {\n        int need = target - nums[i];\n        if (seen.containsKey(need)) {\n            return new int[]{seen.get(need), i};\n        }\n        seen.put(nums[i], i);\n    }\n    return new int[0];\n}",
+      "cost": "Expected O(n) time and O(n) auxiliary space. Each element makes a constant number of expected-constant-time hash operations.",
+      "example": "[2,7,11,15], target=9 → [0,1]",
+      "url": "https://leetcode.com/problems/two-sum/"
+    },
+    "49": {
+      "id": "49",
+      "title": "Group Anagrams",
+      "diff": "Medium",
+      "prompt": "Group strings that contain the same letters with the same multiplicities. Inputs contain lowercase English letters.",
+      "hints": [
+        "What representation stays the same when letters are rearranged?",
+        "Sort the characters of each word and use that string as a map key."
+      ],
+      "approach": "Words have equal sorted keys exactly when they are anagrams. Append each original word to its key’s group.",
+      "code": "public List<List<String>> groupAnagrams(String[] strs) {\n    Map<String, List<String>> groups = new HashMap<>();\n    for (String s : strs) {\n        char[] letters = s.toCharArray();\n        Arrays.sort(letters);\n        String key = new String(letters);\n        groups.computeIfAbsent(key, k -> new ArrayList<>()).add(s);\n    }\n    return new ArrayList<>(groups.values());\n}",
+      "cost": "O(n k log k) time for n words of maximum length k; O(nk) space for keys and grouped references (including returned grouping). Hashing a length-k key also costs O(k).",
+      "example": "[\"eat\",\"tea\",\"tan\"] → [[\"eat\",\"tea\"],[\"tan\"]] (group order may differ)",
+      "url": "https://leetcode.com/problems/group-anagrams/"
+    },
+    "128": {
+      "id": "128",
+      "title": "Longest Consecutive Sequence",
+      "diff": "Medium",
+      "prompt": "Find the length of the longest consecutive-value sequence in an unsorted array, in O(n) expected time.",
+      "hints": [
+        "A sequence only needs to be counted from its smallest value.",
+        "Put values in a set; start a forward walk only when x-1 is absent."
+      ],
+      "approach": "Each distinct value is traversed in only one sequence. Duplicates disappear in the set.",
+      "code": "public int longestConsecutive(int[] nums) {\n    Set<Integer> set = new HashSet<>();\n    for (int x : nums) {\n        set.add(x);\n    }\n    int best = 0;\n    for (int x : set) {\n        if (x != Integer.MIN_VALUE && set.contains(x - 1)) {\n            continue;\n        }\n        int end = x;\n        int length = 1;\n        while (end != Integer.MAX_VALUE && set.contains(end + 1)) {\n            end++;\n            length++;\n        }\n        best = Math.max(best, length);\n    }\n    return best;\n}",
+      "cost": "Expected O(n) time and O(n) space. The nested walk visits each distinct value once across all sequence starts.",
+      "example": "[100,4,200,1,3,2] → 4",
+      "url": "https://leetcode.com/problems/longest-consecutive-sequence/"
+    },
+    "167": {
+      "id": "167",
+      "title": "Two Sum II - Input Array Is Sorted",
+      "diff": "Medium",
+      "prompt": "In a nondecreasing array, find two distinct values totaling target; return their 1-based indices.",
+      "hints": [
+        "How does sorting constrain which movement can improve a sum that is too small?",
+        "Start at both ends. Increase left for a small sum; decrease right for a large sum."
+      ],
+      "approach": "If the sum is too small, the current left value cannot pair with any remaining right value. The symmetric argument eliminates right when the sum is too large.",
+      "code": "public int[] twoSum(int[] numbers, int target) {\n    int left = 0;\n    int right = numbers.length - 1;\n    while (left < right) {\n        long sum = (long) numbers[left] + numbers[right];\n        if (sum == target) {\n            return new int[]{left + 1, right + 1};\n        }\n        if (sum < target) {\n            left++;\n        } else {\n            right--;\n        }\n    }\n    return new int[0];\n}",
+      "cost": "O(n) time because each pointer moves at most n times; O(1) auxiliary space.",
+      "example": "[2,7,11,15], target=9 → [1,2]",
+      "url": "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/"
+    },
+    "15": {
+      "id": "15",
+      "title": "3Sum",
+      "diff": "Medium",
+      "prompt": "Return unique triplets of values summing to zero.",
+      "hints": [
+        "Fix one value; what familiar problem remains?",
+        "Sort, then use two pointers for the remaining pair. Skip duplicate fixed and paired values."
+      ],
+      "approach": "Sorting makes duplicate elimination and directional pair search possible. This solution changes the input order.",
+      "code": "public List<List<Integer>> threeSum(int[] nums) {\n    Arrays.sort(nums);\n    List<List<Integer>> result = new ArrayList<>();\n    for (int i = 0; i < nums.length - 2; i++) {\n        if (i > 0 && nums[i] == nums[i - 1]) {\n            continue;\n        }\n        int left = i + 1;\n        int right = nums.length - 1;\n        while (left < right) {\n            long sum = (long) nums[i] + nums[left] + nums[right];\n            if (sum < 0) {\n                left++;\n            } else if (sum > 0) {\n                right--;\n            } else {\n                result.add(Arrays.asList(nums[i], nums[left], nums[right]));\n                left++;\n                right--;\n                while (left < right && nums[left] == nums[left - 1]) {\n                    left++;\n                }\n                while (left < right && nums[right] == nums[right + 1]) {\n                    right--;\n                }\n            }\n        }\n    }\n    return result;\n}",
+      "cost": "O(n²) time. O(log n) typical sorting stack space, excluding O(z) output for z triplets; scan uses O(1) extra space.",
+      "example": "[-1,0,1,2,-1,-4] → [[-1,-1,2],[-1,0,1]]",
+      "url": "https://leetcode.com/problems/3sum/"
+    },
+    "283": {
+      "id": "283",
+      "title": "Move Zeroes",
+      "diff": "Easy",
+      "prompt": "Move all zeros to the end in place, preserving the order of nonzero values.",
+      "hints": [
+        "Track where the next retained value belongs.",
+        "Copy each nonzero to a write pointer, then fill the remaining suffix with zeros."
+      ],
+      "approach": "The prefix before write always contains the encountered nonzero values in their original order.",
+      "code": "public void moveZeroes(int[] nums) {\n    int write = 0;\n    for (int read = 0; read < nums.length; read++) {\n        if (nums[read] != 0) {\n            nums[write] = nums[read];\n            write++;\n        }\n    }\n    while (write < nums.length) {\n        nums[write] = 0;\n        write++;\n    }\n}",
+      "cost": "O(n) time and O(1) auxiliary space; each position is read once and written at most a constant number of times.",
+      "example": "[0,1,0,3,12] → [1,3,12,0,0]",
+      "url": "https://leetcode.com/problems/move-zeroes/"
+    },
+    "3": {
+      "id": "3",
+      "title": "Longest Substring Without Repeating Characters",
+      "diff": "Medium",
+      "prompt": "Return the longest length of a contiguous substring with no repeated characters.",
+      "hints": [
+        "Maintain one contiguous range rather than restarting for every left endpoint.",
+        "Count characters in a window; after adding the right character, remove from the left until its count is one."
+      ],
+      "approach": "Before recording a length, all window characters are distinct. Every longer range ending at right was invalid.",
+      "code": "public int lengthOfLongestSubstring(String s) {\n    Map<Character, Integer> count = new HashMap<>();\n    int left = 0;\n    int best = 0;\n    for (int right = 0; right < s.length(); right++) {\n        char c = s.charAt(right);\n        count.put(c, count.getOrDefault(c, 0) + 1);\n        while (count.get(c) > 1) {\n            char removed = s.charAt(left++);\n            count.put(removed, count.get(removed) - 1);\n        }\n        best = Math.max(best, right - left + 1);\n    }\n    return best;\n}",
+      "cost": "Expected O(n) time; O(min(n, alphabet size)) space. Each UTF-16 char is added once and removed at most once. This implementation counts Java char units, not arbitrary Unicode grapheme clusters.",
+      "example": "\"abba\" → 2",
+      "url": "https://leetcode.com/problems/longest-substring-without-repeating-characters/"
+    },
+    "209": {
+      "id": "209",
+      "title": "Minimum Size Subarray Sum",
+      "diff": "Medium",
+      "prompt": "For positive integers and a positive target, return the shortest nonempty subarray with sum at least target, or 0.",
+      "hints": [
+        "Positivity means extending never decreases the sum.",
+        "Expand right, then repeatedly shrink while the sum is large enough, recording lengths before removal."
+      ],
+      "approach": "Shrinking enumerates the valid left boundaries needed for the shortest window at each right boundary.",
+      "code": "public int minSubArrayLen(int target, int[] nums) {\n    int left = 0;\n    int best = nums.length + 1;\n    long sum = 0;\n    for (int right = 0; right < nums.length; right++) {\n        sum += nums[right];\n        while (sum >= target) {\n            best = Math.min(best, right - left + 1);\n            sum -= nums[left++];\n        }\n    }\n    return best == nums.length + 1 ? 0 : best;\n}",
+      "cost": "O(n) time and O(1) auxiliary space. Both endpoints move only forward. Negative numbers would invalidate the shrink rule.",
+      "example": "target=7, [2,3,1,2,4,3] → 2",
+      "url": "https://leetcode.com/problems/minimum-size-subarray-sum/"
+    },
+    "567": {
+      "id": "567",
+      "title": "Permutation in String",
+      "diff": "Medium",
+      "prompt": "For lowercase strings, determine whether s2 contains a substring that is a permutation of s1.",
+      "hints": [
+        "A permutation has the same length and letter frequencies.",
+        "Slide a window of length s1.length(), compare two arrays of 26 counts."
+      ],
+      "approach": "Once the window has the target length, equality of all counts is necessary and sufficient.",
+      "code": "public boolean checkInclusion(String s1, String s2) {\n    if (s1.length() > s2.length()) {\n        return false;\n    }\n    int[] need = new int[26];\n    int[] have = new int[26];\n    for (char c : s1.toCharArray()) {\n        need[c - 'a']++;\n    }\n    int width = s1.length();\n    for (int right = 0; right < s2.length(); right++) {\n        have[s2.charAt(right) - 'a']++;\n        if (right >= width) {\n            have[s2.charAt(right - width) - 'a']--;\n        }\n        if (right >= width - 1 && Arrays.equals(need, have)) {\n            return true;\n        }\n    }\n    return false;\n}",
+      "cost": "O(m + 26n) = O(m+n) time for lengths m,n; O(26) = O(1) extra space under the lowercase-English constraint.",
+      "example": "s1=\"ab\", s2=\"eidbaooo\" → true",
+      "url": "https://leetcode.com/problems/permutation-in-string/"
+    },
+    "560": {
+      "id": "560",
+      "title": "Subarray Sum Equals K",
+      "diff": "Medium",
+      "prompt": "Count nonempty contiguous subarrays summing to k; values may be negative.",
+      "hints": [
+        "A range sum is the difference between two prefix sums.",
+        "At prefix sum s, count earlier prefixes equal to s-k. Seed frequency 0 with 1."
+      ],
+      "approach": "Earlier prefix occurrences represent distinct starting positions. Query before adding the current prefix to avoid counting an empty range.",
+      "code": "public int subarraySum(int[] nums, int k) {\n    Map<Long, Integer> frequency = new HashMap<>();\n    frequency.put(0L, 1);\n    long prefix = 0;\n    int answer = 0;\n    for (int x : nums) {\n        prefix += x;\n        answer += frequency.getOrDefault(prefix - k, 0);\n        frequency.put(prefix, frequency.getOrDefault(prefix, 0) + 1);\n    }\n    return answer;\n}",
+      "cost": "Expected O(n) time and O(n) space. The answer uses int under the problem’s size limits; larger inputs may need a long count.",
+      "example": "[1,1,1], k=2 → 2",
+      "url": "https://leetcode.com/problems/subarray-sum-equals-k/"
+    },
+    "303": {
+      "id": "303",
+      "title": "Range Sum Query - Immutable",
+      "diff": "Easy",
+      "prompt": "Preprocess an array to answer inclusive range-sum queries without updates.",
+      "hints": [
+        "Can each query reuse totals computed once?",
+        "Let prefix[i] be the sum of the first i values. Range [l,r] is prefix[r+1]-prefix[l]."
+      ],
+      "approach": "An extra leading zero makes ranges starting at index zero use the same formula.",
+      "code": "class NumArray {\n    private final int[] prefix;\n    public NumArray(int[] nums) {\n        prefix = new int[nums.length + 1];\n        for (int i = 0; i < nums.length; i++) {\n            prefix[i + 1] = prefix[i] + nums[i];\n        }\n    }\n    public int sumRange(int left, int right) {\n        return prefix[right + 1] - prefix[left];\n    }\n}",
+      "cost": "O(n) preprocessing time and space; O(1) per query. Use long[] if total sums can exceed int.",
+      "example": "[-2,0,3,-5,2,-1], query(0,2) → 1",
+      "url": "https://leetcode.com/problems/range-sum-query-immutable/"
+    },
+    "238": {
+      "id": "238",
+      "title": "Product of Array Except Self",
+      "diff": "Medium",
+      "prompt": "Return each position’s product of all other elements without division, in linear time.",
+      "hints": [
+        "Combine information strictly to the left and strictly to the right.",
+        "Write prefix products into the answer, then multiply by a running suffix product."
+      ],
+      "approach": "Before visiting index i in the backward pass, suffix contains exactly the product after i. Handles zeros without special division cases.",
+      "code": "public int[] productExceptSelf(int[] nums) {\n    int[] answer = new int[nums.length];\n    int prefix = 1;\n    for (int i = 0; i < nums.length; i++) {\n        answer[i] = prefix;\n        prefix *= nums[i];\n    }\n    int suffix = 1;\n    for (int i = nums.length - 1; i >= 0; i--) {\n        answer[i] *= suffix;\n        suffix *= nums[i];\n    }\n    return answer;\n}",
+      "cost": "O(n) time, O(1) auxiliary space excluding the O(n) returned array. Products are assumed to fit int as in the problem constraints.",
+      "example": "[1,2,3,4] → [24,12,8,6]",
+      "url": "https://leetcode.com/problems/product-of-array-except-self/"
+    },
+    "56": {
+      "id": "56",
+      "title": "Merge Intervals",
+      "diff": "Medium",
+      "prompt": "Merge all overlapping closed intervals. Touching endpoints count as overlap.",
+      "hints": [
+        "Sorting can make intervals that need merging adjacent.",
+        "Sort by start, extend the current merged interval while next.start <= current.end."
+      ],
+      "approach": "Once the next start exceeds the current end, no later interval can overlap the current one.",
+      "code": "public int[][] merge(int[][] intervals) {\n    Arrays.sort(intervals, (a, b) -> Integer.compare(a[0], b[0]));\n    List<int[]> result = new ArrayList<>();\n    for (int[] interval : intervals) {\n        if (result.isEmpty() || result.get(result.size() - 1)[1] < interval[0]) {\n            result.add(interval.clone());\n        } else {\n            int[] last = result.get(result.size() - 1);\n            last[1] = Math.max(last[1], interval[1]);\n        }\n    }\n    return result.toArray(new int[result.size()][]);\n}",
+      "cost": "O(n log n) time; O(n) space including output and object-array sorting workspace. The input array is reordered.",
+      "example": "[[1,3],[2,6],[8,10]] → [[1,6],[8,10]]",
+      "url": "https://leetcode.com/problems/merge-intervals/"
+    },
+    "179": {
+      "id": "179",
+      "title": "Largest Number",
+      "diff": "Medium",
+      "prompt": "Arrange nonnegative integers to form the largest concatenated number.",
+      "hints": [
+        "Ordinary numeric or lexicographic sorting does not resolve pairs such as 3 and 30.",
+        "Compare the concatenations a+b and b+a."
+      ],
+      "approach": "Place a before b exactly when a+b is larger. An all-zero input must return a single zero.",
+      "code": "public String largestNumber(int[] nums) {\n    String[] values = new String[nums.length];\n    for (int i = 0; i < nums.length; i++) {\n        values[i] = String.valueOf(nums[i]);\n    }\n    Arrays.sort(values, (a, b) -> (b + a).compareTo(a + b));\n    if (values[0].equals(\"0\")) {\n        return \"0\";\n    }\n    StringBuilder result = new StringBuilder();\n    for (String value : values) {\n        result.append(value);\n    }\n    return result.toString();\n}",
+      "cost": "O(n log n · d) time for maximum digit length d; O(nd) space for strings/output plus sorting workspace.",
+      "example": "[3,30,34,5,9] → \"9534330\"",
+      "url": "https://leetcode.com/problems/largest-number/"
+    },
+    "704": {
+      "id": "704",
+      "title": "Binary Search",
+      "diff": "Easy",
+      "prompt": "Find target in an ascending array of distinct values, or return -1.",
+      "hints": [
+        "A comparison can eliminate half the candidates.",
+        "Maintain a closed candidate interval [left,right]; discard mid after checking it."
+      ],
+      "approach": "If present, target remains in the candidate interval after every update.",
+      "code": "public int search(int[] nums, int target) {\n    int left = 0;\n    int right = nums.length - 1;\n    while (left <= right) {\n        int mid = left + (right - left) / 2;\n        if (nums[mid] == target) {\n            return mid;\n        }\n        if (nums[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return -1;\n}",
+      "cost": "O(log n) time and O(1) extra space. Each comparison halves the remaining candidate interval.",
+      "example": "[-1,0,3,5,9,12], target=9 → 4",
+      "url": "https://leetcode.com/problems/binary-search/"
+    },
+    "34": {
+      "id": "34",
+      "title": "Find First and Last Position of Element in Sorted Array",
+      "diff": "Medium",
+      "prompt": "Return the first and last indices of target in a sorted array, or [-1,-1].",
+      "hints": [
+        "A normal search finds any occurrence, not necessarily a boundary.",
+        "Find the first index >= target and the first index > target using separate lower-bound searches."
+      ],
+      "approach": "The target occupies a contiguous block between the two boundaries. The end may equal n.",
+      "code": "public int[] searchRange(int[] nums, int target) {\n    int first = boundary(nums, target, false);\n    if (first == nums.length || nums[first] != target) {\n        return new int[]{-1, -1};\n    }\n    return new int[]{first, boundary(nums, target, true) - 1};\n}\nprivate int boundary(int[] nums, int target, boolean strict) {\n    int left = 0;\n    int right = nums.length;\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (nums[mid] < target || (strict && nums[mid] == target)) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}",
+      "cost": "O(log n) time for two searches; O(1) space. Using a strict flag avoids target+1 overflow.",
+      "example": "[5,7,7,8,8,10], target=8 → [3,4]",
+      "url": "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/"
+    },
+    "33": {
+      "id": "33",
+      "title": "Search in Rotated Sorted Array",
+      "diff": "Medium",
+      "prompt": "Find target in a rotated ascending array with distinct values.",
+      "hints": [
+        "At least one half is still sorted.",
+        "Identify the sorted half, then test whether target lies within its value range."
+      ],
+      "approach": "Discard a half only after proving target cannot occur there; distinctness makes the sorted-half test unambiguous.",
+      "code": "public int search(int[] nums, int target) {\n    int left = 0;\n    int right = nums.length - 1;\n    while (left <= right) {\n        int mid = left + (right - left) / 2;\n        if (nums[mid] == target) {\n            return mid;\n        }\n        if (nums[left] <= nums[mid]) {\n            if (nums[left] <= target && target < nums[mid]) {\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        } else {\n            if (nums[mid] < target && target <= nums[right]) {\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n    }\n    return -1;\n}",
+      "cost": "O(log n) time and O(1) space under the distinct-values constraint. Duplicates require additional handling and can lead to O(n).",
+      "example": "[4,5,6,7,0,1,2], target=0 → 4",
+      "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/"
+    },
+    "875": {
+      "id": "875",
+      "title": "Koko Eating Bananas",
+      "diff": "Medium",
+      "prompt": "Find the smallest integer eating speed that finishes all positive piles within h hours; h is at least the number of piles.",
+      "hints": [
+        "If a speed works, do all larger speeds work?",
+        "Binary-search speed from 1 to the largest pile; sum ceil(pile/speed) to test feasibility."
+      ],
+      "approach": "Feasibility is false then true. Keep a known-feasible upper boundary and locate the first feasible speed.",
+      "code": "public int minEatingSpeed(int[] piles, int h) {\n    int left = 1;\n    int right = 0;\n    for (int pile : piles) {\n        right = Math.max(right, pile);\n    }\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        long hours = 0;\n        for (int pile : piles) {\n            hours += (pile + (long) mid - 1) / mid;\n        }\n        if (hours <= h) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}",
+      "cost": "O(n log M) time, where M is the largest pile; O(1) extra space. Each candidate speed requires an O(n) scan.",
+      "example": "[3,6,7,11], h=8 → 4",
+      "url": "https://leetcode.com/problems/koko-eating-bananas/"
+    },
+    "1011": {
+      "id": "1011",
+      "title": "Capacity To Ship Packages Within D Days",
+      "diff": "Medium",
+      "prompt": "Find minimum ship capacity to transport positive weights in order within days days.",
+      "hints": [
+        "A capacity can be checked greedily without finding the optimal capacity first.",
+        "Search between max(weight) and sum(weights); count days used by filling each day in order."
+      ],
+      "approach": "For fixed capacity, taking the longest fitting prefix each day minimizes the number of days. Feasibility is monotone.",
+      "code": "public int shipWithinDays(int[] weights, int days) {\n    int left = 0;\n    int right = 0;\n    for (int weight : weights) {\n        left = Math.max(left, weight);\n        right += weight;\n    }\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        int used = 1;\n        int load = 0;\n        for (int weight : weights) {\n            if (load + weight > mid) {\n                used++;\n                load = 0;\n            }\n            load += weight;\n        }\n        if (used <= days) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}",
+      "cost": "O(n log S) time, S=sum(weights); O(1) space. int sums are safe under the stated LeetCode constraints; use long for larger totals.",
+      "example": "[1,2,3,1,1], days=4 → 3",
+      "url": "https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/"
+    },
+    "410": {
+      "id": "410",
+      "title": "Split Array Largest Sum",
+      "diff": "Hard",
+      "prompt": "Split nonnegative values into exactly k nonempty contiguous groups, minimizing the largest group sum.",
+      "hints": [
+        "A bound on the largest group sum defines a yes/no question.",
+        "Greedily count groups needed under a bound; search from max value to total sum."
+      ],
+      "approach": "If at most k groups suffice, nonnegative groups can be split further to reach exactly k without increasing their sums.",
+      "code": "public int splitArray(int[] nums, int k) {\n    int left = 0;\n    int right = 0;\n    for (int x : nums) {\n        left = Math.max(left, x);\n        right += x;\n    }\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        int groups = 1;\n        int sum = 0;\n        for (int x : nums) {\n            if (sum + x > mid) {\n                groups++;\n                sum = 0;\n            }\n            sum += x;\n        }\n        if (groups <= k) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}",
+      "cost": "O(n log(S+1)) time for total S; O(1) space. The nonnegative constraint is essential.",
+      "example": "[7,2,5,10,8], k=2 → 18",
+      "url": "https://leetcode.com/problems/split-array-largest-sum/"
+    },
+    "57": {
+      "id": "57",
+      "title": "Insert Interval",
+      "diff": "Medium",
+      "prompt": "Insert one closed interval into sorted, disjoint closed intervals and merge overlaps.",
+      "hints": [
+        "The existing order lets you avoid sorting again.",
+        "Copy intervals strictly before the new one, absorb overlaps, then copy the suffix."
+      ],
+      "approach": "Each interval belongs to exactly one of three phases: before, overlapping, after.",
+      "code": "public int[][] insert(int[][] intervals, int[] newInterval) {\n    List<int[]> result = new ArrayList<>();\n    int i = 0;\n    int start = newInterval[0];\n    int end = newInterval[1];\n    while (i < intervals.length && intervals[i][1] < start) {\n        result.add(intervals[i++]);\n    }\n    while (i < intervals.length && intervals[i][0] <= end) {\n        start = Math.min(start, intervals[i][0]);\n        end = Math.max(end, intervals[i][1]);\n        i++;\n    }\n    result.add(new int[]{start, end});\n    while (i < intervals.length) {\n        result.add(intervals[i++]);\n    }\n    return result.toArray(new int[result.size()][]);\n}",
+      "cost": "O(n) time and O(n) output/reference-list space. Unchanged intervals are shared with the input rather than copied.",
+      "example": "[[1,3],[6,9]], new=[2,5] → [[1,5],[6,9]]",
+      "url": "https://leetcode.com/problems/insert-interval/"
+    },
+    "435": {
+      "id": "435",
+      "title": "Non-overlapping Intervals",
+      "diff": "Medium",
+      "prompt": "Remove the fewest intervals so the rest do not overlap. Touching endpoints are allowed.",
+      "hints": [
+        "Equivalently, keep the largest compatible subset.",
+        "Sort by end and keep each interval whose start is at least the previous kept end."
+      ],
+      "approach": "The earliest-ending choice leaves at least as much room as any competing first choice; repeat this exchange argument.",
+      "code": "public int eraseOverlapIntervals(int[][] intervals) {\n    Arrays.sort(intervals, (a, b) -> Integer.compare(a[1], b[1]));\n    int removed = 0;\n    long end = Long.MIN_VALUE;\n    for (int[] interval : intervals) {\n        if (interval[0] < end) {\n            removed++;\n        } else {\n            end = interval[1];\n        }\n    }\n    return removed;\n}",
+      "cost": "O(n log n) time; O(n) Java object-array sorting workspace. The subsequent greedy scan uses O(1) auxiliary state.",
+      "example": "[[1,2],[2,3],[3,4],[1,3]] → 1",
+      "url": "https://leetcode.com/problems/non-overlapping-intervals/"
+    },
+    "1094": {
+      "id": "1094",
+      "title": "Car Pooling",
+      "diff": "Medium",
+      "prompt": "Trips give passenger count, pickup, and drop-off positions. Determine whether capacity is ever exceeded; drop-off frees capacity at that position.",
+      "hints": [
+        "Only pickup and drop-off positions change the number onboard.",
+        "Add passengers at start and subtract at end in a sorted event map; accumulate deltas."
+      ],
+      "approach": "Combine all deltas at the same position before checking capacity, matching drop-off/pickup sharing.",
+      "code": "public boolean carPooling(int[][] trips, int capacity) {\n    TreeMap<Integer, Integer> events = new TreeMap<>();\n    for (int[] trip : trips) {\n        events.merge(trip[1], trip[0], Integer::sum);\n        events.merge(trip[2], -trip[0], Integer::sum);\n    }\n    int onboard = 0;\n    for (int delta : events.values()) {\n        onboard += delta;\n        if (onboard > capacity) {\n            return false;\n        }\n    }\n    return true;\n}",
+      "cost": "O(n log n) time and O(n) space for up to 2n distinct events. A bounded-coordinate difference array is another option.",
+      "example": "[[2,1,5],[3,3,7]], capacity=4 → false",
+      "url": "https://leetcode.com/problems/car-pooling/"
+    },
+    "2406": {
+      "id": "2406",
+      "title": "Divide Intervals Into Minimum Number of Groups",
+      "diff": "Medium",
+      "prompt": "Assign closed intervals to the fewest groups so intervals within a group do not intersect.",
+      "hints": [
+        "The answer is the maximum number of simultaneously active intervals.",
+        "For integer endpoints, add +1 at start and -1 at end+1, then take the maximum prefix total."
+      ],
+      "approach": "Closed endpoints stay active through end. Using end+1 implements that rule directly.",
+      "code": "public int minGroups(int[][] intervals) {\n    TreeMap<Long, Integer> events = new TreeMap<>();\n    for (int[] interval : intervals) {\n        events.merge((long) interval[0], 1, Integer::sum);\n        events.merge((long) interval[1] + 1, -1, Integer::sum);\n    }\n    int active = 0;\n    int best = 0;\n    for (int delta : events.values()) {\n        active += delta;\n        best = Math.max(best, active);\n    }\n    return best;\n}",
+      "cost": "O(n log n) time and O(n) space. long event coordinates avoid end+1 overflow.",
+      "example": "[[1,3],[3,5]] → 2",
+      "url": "https://leetcode.com/problems/divide-intervals-into-minimum-number-of-groups/"
+    },
+    "1109": {
+      "id": "1109",
+      "title": "Corporate Flight Bookings",
+      "diff": "Medium",
+      "prompt": "Each booking adds seats to an inclusive range of numbered flights. Return the total seats for every flight.",
+      "hints": [
+        "Many range additions can be recorded by their boundary changes.",
+        "Add at first-1, subtract at last when it is inside the array, then take a prefix sum."
+      ],
+      "approach": "Each booking contributes from its start until its cancellation event just after its final flight.",
+      "code": "public int[] corpFlightBookings(int[][] bookings, int n) {\n    int[] difference = new int[n];\n    for (int[] booking : bookings) {\n        difference[booking[0] - 1] += booking[2];\n        if (booking[1] < n) {\n            difference[booking[1]] -= booking[2];\n        }\n    }\n    for (int i = 1; i < n; i++) {\n        difference[i] += difference[i - 1];\n    }\n    return difference;\n}",
+      "cost": "O(b+n) time for b bookings and n flights; O(n) returned array, O(1) extra state beyond it.",
+      "example": "[[1,2,10],[2,3,20]], n=3 → [10,30,20]",
+      "url": "https://leetcode.com/problems/corporate-flight-bookings/"
+    },
+    "206": {
+      "id": "206",
+      "title": "Reverse Linked List",
+      "diff": "Easy",
+      "prompt": "Reverse a singly linked list and return the new head.",
+      "hints": [
+        "Changing a next pointer can lose access to the remaining list.",
+        "Save next, reverse the current link, then advance prev and current."
+      ],
+      "approach": "prev is the reversed processed prefix; current starts the untouched suffix.",
+      "code": "public ListNode reverseList(ListNode head) {\n    ListNode prev = null;\n    ListNode current = head;\n    while (current != null) {\n        ListNode next = current.next; // Preserve the untouched suffix.\n        current.next = prev;\n        prev = current;\n        current = next;\n    }\n    return prev;\n}",
+      "cost": "O(n) time and O(1) extra space. Nodes are relinked in place.",
+      "example": "1→2→3 → 3→2→1",
+      "url": "https://leetcode.com/problems/reverse-linked-list/"
+    },
+    "21": {
+      "id": "21",
+      "title": "Merge Two Sorted Lists",
+      "diff": "Easy",
+      "prompt": "Merge two sorted linked lists by relinking their nodes.",
+      "hints": [
+        "A dummy head removes the special case of choosing the first output node.",
+        "Repeatedly append the smaller head, then attach the remaining suffix."
+      ],
+      "approach": "The output prefix is sorted and contains the smallest processed nodes.",
+      "code": "public ListNode mergeTwoLists(ListNode a, ListNode b) {\n    ListNode dummy = new ListNode(0);\n    ListNode tail = dummy;\n    while (a != null && b != null) {\n        if (a.val <= b.val) {\n            tail.next = a;\n            a = a.next;\n        } else {\n            tail.next = b;\n            b = b.next;\n        }\n        tail = tail.next;\n    }\n    tail.next = a != null ? a : b;\n    return dummy.next;\n}",
+      "cost": "O(m+n) time and O(1) auxiliary space. Reuses input nodes; does not allocate an output copy.",
+      "example": "1→3 and 2→4 → 1→2→3→4",
+      "url": "https://leetcode.com/problems/merge-two-sorted-lists/"
+    },
+    "19": {
+      "id": "19",
+      "title": "Remove Nth Node From End of List",
+      "diff": "Medium",
+      "prompt": "Remove the nth node from the end; n is valid.",
+      "hints": [
+        "A fixed distance between two pointers can convert an end-relative position to one pass.",
+        "Start both at a dummy node, advance fast n times, then move both until fast.next is null."
+      ],
+      "approach": "slow ends immediately before the node to remove, including when that node is the head.",
+      "code": "public ListNode removeNthFromEnd(ListNode head, int n) {\n    ListNode dummy = new ListNode(0);\n    dummy.next = head;\n    ListNode fast = dummy;\n    ListNode slow = dummy;\n    for (int i = 0; i < n; i++) {\n        fast = fast.next;\n    }\n    while (fast.next != null) {\n        fast = fast.next;\n        slow = slow.next;\n    }\n    slow.next = slow.next.next;\n    return dummy.next;\n}",
+      "cost": "O(L) time for list length L, O(1) extra space. The two passes of pointer movement together are still linear.",
+      "example": "1→2→3→4→5, n=2 → 1→2→3→5",
+      "url": "https://leetcode.com/problems/remove-nth-node-from-end-of-list/"
+    },
+    "141": {
+      "id": "141",
+      "title": "Linked List Cycle",
+      "diff": "Easy",
+      "prompt": "Determine whether following next pointers eventually repeats a node.",
+      "hints": [
+        "Two runners at different speeds behave differently on a path and a cycle.",
+        "Move slow one step and fast two. Compare node identities after moving."
+      ],
+      "approach": "In a cycle the relative distance advances by one per iteration modulo cycle length, so the pointers meet.",
+      "code": "public boolean hasCycle(ListNode head) {\n    ListNode slow = head;\n    ListNode fast = head;\n    while (fast != null && fast.next != null) {\n        slow = slow.next;\n        fast = fast.next.next;\n        if (slow == fast) {\n            return true;\n        }\n    }\n    return false;\n}",
+      "cost": "O(n) time and O(1) space, where n counts distinct reachable nodes. An acyclic list terminates; a cyclic one meets within prefix length plus cycle length iterations.",
+      "example": "1→2→3→2 (same node 2) → true",
+      "url": "https://leetcode.com/problems/linked-list-cycle/"
+    },
+    "876": {
+      "id": "876",
+      "title": "Middle of the Linked List",
+      "diff": "Easy",
+      "prompt": "Return the middle node; for even length return the second middle.",
+      "hints": [
+        "How far has a one-step pointer traveled when a two-step pointer reaches the end?",
+        "Move slow once and fast twice while fast and fast.next exist."
+      ],
+      "approach": "After t iterations, slow is at index t and fast has advanced 2t steps.",
+      "code": "public ListNode middleNode(ListNode head) {\n    ListNode slow = head;\n    ListNode fast = head;\n    while (fast != null && fast.next != null) {\n        slow = slow.next;\n        fast = fast.next.next;\n    }\n    return slow;\n}",
+      "cost": "O(n) time and O(1) space.",
+      "example": "1→2→3→4 → node 3",
+      "url": "https://leetcode.com/problems/middle-of-the-linked-list/"
+    },
+    "287": {
+      "id": "287",
+      "title": "Find the Duplicate Number",
+      "diff": "Medium",
+      "prompt": "An array of n+1 numbers contains values in [1,n] and exactly one duplicated value, possibly repeated more than twice. Find it without modifying the array and with constant extra space.",
+      "hints": [
+        "Interpret each value as the index of the next node.",
+        "Run Floyd’s meeting phase from index 0, then reset one pointer to 0 and move both one step."
+      ],
+      "approach": "The functional graph reachable from index 0 has a cycle. Its entry is the duplicate because it has multiple incoming references.",
+      "code": "public int findDuplicate(int[] nums) {\n    int slow = 0;\n    int fast = 0;\n    do {\n        slow = nums[slow];\n        fast = nums[nums[fast]];\n    } while (slow != fast);\n    slow = 0;\n    while (slow != fast) {\n        slow = nums[slow];\n        fast = nums[fast];\n    }\n    return slow;\n}",
+      "cost": "O(n) time and O(1) space. The graph interpretation requires the value range [1,n].",
+      "example": "[1,3,4,2,2] → 2",
+      "url": "https://leetcode.com/problems/find-the-duplicate-number/"
+    },
+    "20": {
+      "id": "20",
+      "title": "Valid Parentheses",
+      "diff": "Easy",
+      "prompt": "Check proper matching and nesting of (), [], and {}.",
+      "hints": [
+        "The most recent unmatched opener must close first.",
+        "Push the expected closing bracket; compare each closer with the stack top."
+      ],
+      "approach": "The stack records all outstanding closing obligations in reverse order.",
+      "code": "public boolean isValid(String s) {\n    Deque<Character> stack = new ArrayDeque<>();\n    for (char c : s.toCharArray()) {\n        if (c == '(') {\n            stack.push(')');\n        } else if (c == '[') {\n            stack.push(']');\n        } else if (c == '{') {\n            stack.push('}');\n        } else if (stack.isEmpty() || stack.pop() != c) {\n            return false;\n        }\n    }\n    return stack.isEmpty();\n}",
+      "cost": "O(n) time and O(n) worst-case space for unmatched openers. The input is assumed to contain only the six bracket characters.",
+      "example": "\"([])\" → true; \"([)]\" → false",
+      "url": "https://leetcode.com/problems/valid-parentheses/"
+    },
+    "150": {
+      "id": "150",
+      "title": "Evaluate Reverse Polish Notation",
+      "diff": "Medium",
+      "prompt": "Evaluate a valid postfix arithmetic expression; division truncates toward zero.",
+      "hints": [
+        "An operator consumes the two most recent unfinished results.",
+        "Pop right operand first, then left. Push the computed result."
+      ],
+      "approach": "Each stack entry is the result of a completed subexpression waiting to be combined.",
+      "code": "public int evalRPN(String[] tokens) {\n    Deque<Integer> stack = new ArrayDeque<>();\n    for (String token : tokens) {\n        if (token.equals(\"+\") || token.equals(\"-\") || token.equals(\"*\") || token.equals(\"/\")) {\n            int b = stack.pop();\n            int a = stack.pop();\n            switch (token) {\n                case \"+\": stack.push(a + b); break;\n                case \"-\": stack.push(a - b); break;\n                case \"*\": stack.push(a * b); break;\n                default: stack.push(a / b);\n            }\n        } else {\n            stack.push(Integer.parseInt(token));\n        }\n    }\n    return stack.pop();\n}",
+      "cost": "O(n) time for n bounded-length tokens; O(n) stack space. With arbitrary-length tokens include total token length in parsing cost.",
+      "example": "[\"2\",\"1\",\"+\",\"3\",\"*\"] → 9",
+      "url": "https://leetcode.com/problems/evaluate-reverse-polish-notation/"
+    },
+    "155": {
+      "id": "155",
+      "title": "Min Stack",
+      "diff": "Medium",
+      "prompt": "Support push, pop, top, and getMin in constant time per operation.",
+      "hints": [
+        "Store enough history to restore the minimum after a pop.",
+        "With each pushed value, save the minimum of all values up to that stack entry."
+      ],
+      "approach": "Every entry contains the correct minimum for the stack prefix ending at that entry.",
+      "code": "class MinStack {\n    private final Deque<int[]> stack = new ArrayDeque<>();\n    public void push(int val) {\n        int minimum = stack.isEmpty() ? val : Math.min(val, stack.peek()[1]);\n        stack.push(new int[]{val, minimum});\n    }\n    public void pop() {\n        stack.pop();\n    }\n    public int top() {\n        return stack.peek()[0];\n    }\n    public int getMin() {\n        return stack.peek()[1];\n    }\n}",
+      "cost": "O(1) amortized push/pop with ArrayDeque; O(1) top/getMin. O(n) storage. Operations other than push are called only on a nonempty stack.",
+      "example": "push(-2), push(0), push(-3), getMin() → -3; pop(), getMin() → -2",
+      "url": "https://leetcode.com/problems/min-stack/"
+    },
+    "739": {
+      "id": "739",
+      "title": "Daily Temperatures",
+      "diff": "Medium",
+      "prompt": "For each day, return the number of days until a strictly warmer temperature, or zero.",
+      "hints": [
+        "Some earlier days remain unresolved until a warmer day appears.",
+        "Keep unresolved indices in nonincreasing temperature order; pop while current temperature is greater."
+      ],
+      "approach": "A popped day sees its first warmer day now, because all intervening days failed to pop it.",
+      "code": "public int[] dailyTemperatures(int[] temperatures) {\n    int[] answer = new int[temperatures.length];\n    Deque<Integer> stack = new ArrayDeque<>();\n    for (int i = 0; i < temperatures.length; i++) {\n        while (!stack.isEmpty() && temperatures[i] > temperatures[stack.peek()]) {\n            int previous = stack.pop();\n            answer[previous] = i - previous;\n        }\n        stack.push(i);\n    }\n    return answer;\n}",
+      "cost": "O(n) time: each index is pushed once and popped at most once. O(n) auxiliary stack, plus O(n) output.",
+      "example": "[73,74,75,71,69,72,76,73] → [1,1,4,2,1,1,0,0]",
+      "url": "https://leetcode.com/problems/daily-temperatures/"
+    },
+    "496": {
+      "id": "496",
+      "title": "Next Greater Element I",
+      "diff": "Easy",
+      "prompt": "For each value in nums1, find the first greater value to its right in nums2; nums1 is a subset and nums2 has distinct values.",
+      "hints": [
+        "Solve the next-greater question for nums2 once.",
+        "Maintain a decreasing stack of values, recording a mapping when a larger value pops them."
+      ],
+      "approach": "Distinct values let the mapping use values directly; duplicates would generally require indices.",
+      "code": "public int[] nextGreaterElement(int[] nums1, int[] nums2) {\n    Map<Integer, Integer> next = new HashMap<>();\n    Deque<Integer> stack = new ArrayDeque<>();\n    for (int x : nums2) {\n        while (!stack.isEmpty() && stack.peek() < x) {\n            next.put(stack.pop(), x);\n        }\n        stack.push(x);\n    }\n    int[] result = new int[nums1.length];\n    for (int i = 0; i < nums1.length; i++) {\n        result[i] = next.getOrDefault(nums1[i], -1);\n    }\n    return result;\n}",
+      "cost": "Expected O(m+n) time and O(n) auxiliary space, for lengths m and n.",
+      "example": "nums1=[4,1,2], nums2=[1,3,4,2] → [-1,3,-1]",
+      "url": "https://leetcode.com/problems/next-greater-element-i/"
+    },
+    "84": {
+      "id": "84",
+      "title": "Largest Rectangle in Histogram",
+      "diff": "Hard",
+      "prompt": "Find the largest rectangular area under unit-width histogram bars.",
+      "hints": [
+        "A bar’s full usable width becomes known when a smaller bar arrives.",
+        "Use increasing-height indices; on a pop, the new top is the previous smaller boundary and i is the right boundary."
+      ],
+      "approach": "A sentinel zero flushes remaining bars. Equal heights may remain together; at least one receives the full width.",
+      "code": "public int largestRectangleArea(int[] heights) {\n    Deque<Integer> stack = new ArrayDeque<>();\n    int best = 0;\n    for (int i = 0; i <= heights.length; i++) {\n        int current = i == heights.length ? 0 : heights[i];\n        while (!stack.isEmpty() && heights[stack.peek()] > current) {\n            int height = heights[stack.pop()];\n            int left = stack.isEmpty() ? -1 : stack.peek();\n            best = Math.max(best, height * (i - left - 1));\n        }\n        if (i < heights.length) {\n            stack.push(i);\n        }\n    }\n    return best;\n}",
+      "cost": "O(n) time and O(n) stack space. Each index enters and leaves once; area fits int under the original constraints.",
+      "example": "[2,1,5,6,2,3] → 10",
+      "url": "https://leetcode.com/problems/largest-rectangle-in-histogram/"
+    },
+    "239": {
+      "id": "239",
+      "title": "Sliding Window Maximum",
+      "diff": "Hard",
+      "prompt": "Return the maximum for every contiguous window of size k, with 1 <= k <= n.",
+      "hints": [
+        "A later, larger value makes an earlier, smaller value useless for future maxima.",
+        "Store indices in decreasing value order; remove expired indices from front and dominated ones from back."
+      ],
+      "approach": "The deque front is the largest unexpired candidate. A dominated index expires earlier and cannot beat its dominator.",
+      "code": "public int[] maxSlidingWindow(int[] nums, int k) {\n    Deque<Integer> deque = new ArrayDeque<>();\n    int[] answer = new int[nums.length - k + 1];\n    for (int i = 0; i < nums.length; i++) {\n        while (!deque.isEmpty() && deque.peekFirst() <= i - k) {\n            deque.removeFirst();\n        }\n        while (!deque.isEmpty() && nums[deque.peekLast()] <= nums[i]) {\n            deque.removeLast();\n        }\n        deque.addLast(i);\n        if (i >= k - 1) {\n            answer[i - k + 1] = nums[deque.peekFirst()];\n        }\n    }\n    return answer;\n}",
+      "cost": "O(n) time; O(k) auxiliary space plus O(n-k+1) output. Each index is inserted and removed at most once.",
+      "example": "[1,3,-1,-3,5,3,6,7], k=3 → [3,3,5,5,6,7]",
+      "url": "https://leetcode.com/problems/sliding-window-maximum/"
+    },
+    "1438": {
+      "id": "1438",
+      "title": "Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit",
+      "diff": "Medium",
+      "prompt": "Find the longest contiguous subarray whose maximum minus minimum is at most limit.",
+      "hints": [
+        "Checking every pair is equivalent to checking maximum minus minimum.",
+        "Use one decreasing deque for maxima and one increasing deque for minima; shrink until valid."
+      ],
+      "approach": "Both fronts describe the current window’s extrema; expanding cannot reduce the range, so shrinking is safe.",
+      "code": "public int longestSubarray(int[] nums, int limit) {\n    Deque<Integer> max = new ArrayDeque<>();\n    Deque<Integer> min = new ArrayDeque<>();\n    int left = 0;\n    int best = 0;\n    for (int right = 0; right < nums.length; right++) {\n        while (!max.isEmpty() && nums[max.peekLast()] <= nums[right]) {\n            max.removeLast();\n        }\n        while (!min.isEmpty() && nums[min.peekLast()] >= nums[right]) {\n            min.removeLast();\n        }\n        max.addLast(right);\n        min.addLast(right);\n        while ((long) nums[max.peekFirst()] - nums[min.peekFirst()] > limit) {\n            if (max.peekFirst() == left) {\n                max.removeFirst();\n            }\n            if (min.peekFirst() == left) {\n                min.removeFirst();\n            }\n            left++;\n        }\n        best = Math.max(best, right - left + 1);\n    }\n    return best;\n}",
+      "cost": "O(n) time and O(n) worst-case space. Each index enters and leaves each deque once.",
+      "example": "[8,2,4,7], limit=4 → 2",
+      "url": "https://leetcode.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/"
+    },
+    "862": {
+      "id": "862",
+      "title": "Shortest Subarray with Sum at Least K",
+      "diff": "Hard",
+      "prompt": "Find the shortest nonempty subarray with sum at least k, allowing negative numbers, or return -1.",
+      "hints": [
+        "Prefix sums convert the target to a difference; some previous prefixes are dominated.",
+        "Keep increasing prefix sums in a deque. Pop front when it forms a valid range; pop back when current prefix is no larger."
+      ],
+      "approach": "A later prefix with a smaller/equal sum is always a better future start. A front that already forms a valid range cannot improve its length at a later end.",
+      "code": "public int shortestSubarray(int[] nums, int k) {\n    long[] prefix = new long[nums.length + 1];\n    for (int i = 0; i < nums.length; i++) {\n        prefix[i + 1] = prefix[i] + nums[i];\n    }\n    Deque<Integer> deque = new ArrayDeque<>();\n    int best = nums.length + 1;\n    for (int i = 0; i < prefix.length; i++) {\n        while (!deque.isEmpty() && prefix[i] - prefix[deque.peekFirst()] >= k) {\n            best = Math.min(best, i - deque.removeFirst());\n        }\n        while (!deque.isEmpty() && prefix[deque.peekLast()] >= prefix[i]) {\n            deque.removeLast();\n        }\n        deque.addLast(i);\n    }\n    return best == nums.length + 1 ? -1 : best;\n}",
+      "cost": "O(n) time and O(n) space for prefix sums and deque. Every prefix index enters and exits at most once.",
+      "example": "[2,-1,2], k=3 → 3",
+      "url": "https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/"
+    },
+    "104": {
+      "id": "104",
+      "title": "Maximum Depth of Binary Tree",
+      "diff": "Easy",
+      "prompt": "Return the number of nodes on the longest root-to-leaf path.",
+      "hints": [
+        "What answer can each child return to its parent?",
+        "The depth of null is 0; any node has depth 1 + max(left depth,right depth)."
+      ],
+      "approach": "Induction on subtrees: correct child depths give the correct maximum path through the parent.",
+      "code": "public int maxDepth(TreeNode root) {\n    if (root == null) {\n        return 0;\n    }\n    int left = maxDepth(root.left);\n    int right = maxDepth(root.right);\n    return 1 + Math.max(left, right);\n}",
+      "cost": "O(n) time and O(h) recursion space for tree height h: O(log n) balanced, O(n) skewed.",
+      "example": "root 3 with children 9 and 20; 20 has children 15 and 7 → 3",
+      "url": "https://leetcode.com/problems/maximum-depth-of-binary-tree/"
+    },
+    "543": {
+      "id": "543",
+      "title": "Diameter of Binary Tree",
+      "diff": "Easy",
+      "prompt": "Return the longest path length in edges between any two nodes.",
+      "hints": [
+        "A longest path can turn at a node and use both child subtrees.",
+        "Return height upward; separately maximize leftHeight+rightHeight."
+      ],
+      "approach": "Returning the whole diameter upward would be wrong: a parent can extend only one descending branch.",
+      "code": "private int diameter;\npublic int diameterOfBinaryTree(TreeNode root) {\n    diameter = 0;\n    height(root);\n    return diameter;\n}\nprivate int height(TreeNode node) {\n    if (node == null) {\n        return 0;\n    }\n    int left = height(node.left);\n    int right = height(node.right);\n    diameter = Math.max(diameter, left + right);\n    return 1 + Math.max(left, right);\n}",
+      "cost": "O(n) time and O(h) call-stack space. Resetting the field makes repeated calls safe.",
+      "example": "Tree [1,2,3,4,5] in level order → diameter 3 edges",
+      "url": "https://leetcode.com/problems/diameter-of-binary-tree/"
+    },
+    "236": {
+      "id": "236",
+      "title": "Lowest Common Ancestor of a Binary Tree",
+      "diff": "Medium",
+      "prompt": "Find the lowest common ancestor of two distinct node objects p and q, both present in the tree.",
+      "hints": [
+        "Each subtree can report whether it contains a target or their ancestor.",
+        "Return the node when it is p or q. If both recursive sides return nonnull, current is the answer."
+      ],
+      "approach": "If targets split across the two child subtrees, current is their lowest shared ancestor; otherwise propagate the nonnull result.",
+      "code": "public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {\n    if (root == null || root == p || root == q) {\n        return root;\n    }\n    TreeNode left = lowestCommonAncestor(root.left, p, q);\n    TreeNode right = lowestCommonAncestor(root.right, p, q);\n    if (left != null && right != null) {\n        return root;\n    }\n    return left != null ? left : right;\n}",
+      "cost": "O(n) time and O(h) recursion space. If nodes may be absent, add explicit presence validation.",
+      "example": "Tree [3,5,1,6,2,0,8,null,null,7,4], p=5,q=1 → node 3",
+      "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/"
+    },
+    "102": {
+      "id": "102",
+      "title": "Binary Tree Level Order Traversal",
+      "diff": "Medium",
+      "prompt": "Return node values grouped by depth from the root.",
+      "hints": [
+        "A queue visits nodes in increasing distance from the root.",
+        "Capture the queue size before processing each level."
+      ],
+      "approach": "At the beginning of a level, the queue contains exactly that level’s nodes.",
+      "code": "public List<List<Integer>> levelOrder(TreeNode root) {\n    List<List<Integer>> result = new ArrayList<>();\n    if (root == null) {\n        return result;\n    }\n    Queue<TreeNode> queue = new ArrayDeque<>();\n    queue.offer(root);\n    while (!queue.isEmpty()) {\n        int size = queue.size();\n        List<Integer> level = new ArrayList<>();\n        for (int i = 0; i < size; i++) {\n            TreeNode node = queue.poll();\n            level.add(node.val);\n            if (node.left != null) {\n                queue.offer(node.left);\n            }\n            if (node.right != null) {\n                queue.offer(node.right);\n            }\n        }\n        result.add(level);\n    }\n    return result;\n}",
+      "cost": "O(n) time; O(w) auxiliary queue space for maximum width w, plus O(n) output.",
+      "example": "[3,9,20,null,null,15,7] → [[3],[9,20],[15,7]]",
+      "url": "https://leetcode.com/problems/binary-tree-level-order-traversal/"
+    },
+    "199": {
+      "id": "199",
+      "title": "Binary Tree Right Side View",
+      "diff": "Medium",
+      "prompt": "Return the visible value at each depth when viewed from the right.",
+      "hints": [
+        "Which node is last if a level is processed from left to right?",
+        "Use BFS and record the last node of each captured level size."
+      ],
+      "approach": "Enqueuing left before right preserves left-to-right order within every level.",
+      "code": "public List<Integer> rightSideView(TreeNode root) {\n    List<Integer> result = new ArrayList<>();\n    if (root == null) {\n        return result;\n    }\n    Queue<TreeNode> queue = new ArrayDeque<>();\n    queue.offer(root);\n    while (!queue.isEmpty()) {\n        int size = queue.size();\n        for (int i = 0; i < size; i++) {\n            TreeNode node = queue.poll();\n            if (i == size - 1) {\n                result.add(node.val);\n            }\n            if (node.left != null) {\n                queue.offer(node.left);\n            }\n            if (node.right != null) {\n                queue.offer(node.right);\n            }\n        }\n    }\n    return result;\n}",
+      "cost": "O(n) time, O(w) auxiliary queue space, and O(h) output.",
+      "example": "[1,2,3,null,5,null,4] → [1,3,4]",
+      "url": "https://leetcode.com/problems/binary-tree-right-side-view/"
+    },
+    "111": {
+      "id": "111",
+      "title": "Minimum Depth of Binary Tree",
+      "diff": "Easy",
+      "prompt": "Return the number of nodes on the shortest root-to-leaf path.",
+      "hints": [
+        "A missing child is not a leaf path.",
+        "Use BFS; return as soon as a node has both children null."
+      ],
+      "approach": "BFS processes increasing depths, so the first actual leaf gives the shortest root-to-leaf path.",
+      "code": "public int minDepth(TreeNode root) {\n    if (root == null) {\n        return 0;\n    }\n    Queue<TreeNode> queue = new ArrayDeque<>();\n    queue.offer(root);\n    int depth = 1;\n    while (!queue.isEmpty()) {\n        int size = queue.size();\n        for (int i = 0; i < size; i++) {\n            TreeNode node = queue.poll();\n            if (node.left == null && node.right == null) {\n                return depth;\n            }\n            if (node.left != null) {\n                queue.offer(node.left);\n            }\n            if (node.right != null) {\n                queue.offer(node.right);\n            }\n        }\n        depth++;\n    }\n    return depth;\n}",
+      "cost": "O(n) worst-case time and O(w) queue space. Early exit may visit fewer nodes.",
+      "example": "[3,9,20,null,null,15,7] → 2",
+      "url": "https://leetcode.com/problems/minimum-depth-of-binary-tree/"
+    },
+    "98": {
+      "id": "98",
+      "title": "Validate Binary Search Tree",
+      "diff": "Medium",
+      "prompt": "Determine whether every node obeys strict BST ordering, with all left descendants smaller and all right descendants larger.",
+      "hints": [
+        "Checking only immediate children misses ancestor constraints.",
+        "Carry exclusive lower and upper bounds into each subtree."
+      ],
+      "approach": "Every descendant must satisfy all ancestor restrictions; the propagated interval captures their intersection.",
+      "code": "public boolean isValidBST(TreeNode root) {\n    return valid(root, Long.MIN_VALUE, Long.MAX_VALUE);\n}\nprivate boolean valid(TreeNode node, long low, long high) {\n    if (node == null) {\n        return true;\n    }\n    if (node.val <= low || node.val >= high) {\n        return false;\n    }\n    return valid(node.left, low, node.val) && valid(node.right, node.val, high);\n}",
+      "cost": "O(n) time and O(h) recursion space. long bounds allow Integer.MIN_VALUE and Integer.MAX_VALUE as legal node values.",
+      "example": "[5,1,4,null,null,3,6] → false",
+      "url": "https://leetcode.com/problems/validate-binary-search-tree/"
+    },
+    "230": {
+      "id": "230",
+      "title": "Kth Smallest Element in a BST",
+      "diff": "Medium",
+      "prompt": "Return the kth smallest value in a BST, with valid k.",
+      "hints": [
+        "Inorder traversal of a BST is sorted.",
+        "Simulate inorder with a stack; decrement k when visiting each popped node."
+      ],
+      "approach": "All nodes in the left subtree are visited before the node and its right subtree.",
+      "code": "public int kthSmallest(TreeNode root, int k) {\n    Deque<TreeNode> stack = new ArrayDeque<>();\n    TreeNode current = root;\n    while (current != null || !stack.isEmpty()) {\n        while (current != null) {\n            stack.push(current);\n            current = current.left;\n        }\n        current = stack.pop();\n        k--;\n        if (k == 0) {\n            return current.val;\n        }\n        current = current.right;\n    }\n    throw new IllegalArgumentException(\"Invalid k\");\n}",
+      "cost": "O(h+k) time and O(h) stack space, worst-case O(n) time.",
+      "example": "[3,1,4,null,2], k=1 → 1",
+      "url": "https://leetcode.com/problems/kth-smallest-element-in-a-bst/"
+    },
+    "235": {
+      "id": "235",
+      "title": "Lowest Common Ancestor of a Binary Search Tree",
+      "diff": "Medium",
+      "prompt": "Find the lowest common ancestor of two existing nodes in a strict BST.",
+      "hints": [
+        "BST ordering tells you whether both targets lie on the same side.",
+        "Move left if both values are smaller, right if both are larger; otherwise return current."
+      ],
+      "approach": "The first split point, including a target itself, is the lowest node that can contain both targets.",
+      "code": "public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {\n    TreeNode current = root;\n    while (current != null) {\n        if (p.val < current.val && q.val < current.val) {\n            current = current.left;\n        } else if (p.val > current.val && q.val > current.val) {\n            current = current.right;\n        } else {\n            return current;\n        }\n    }\n    return null;\n}",
+      "cost": "O(h) time and O(1) extra space; O(log n) time only if the tree is balanced.",
+      "example": "BST [6,2,8,0,4,7,9,null,null,3,5], p=2,q=8 → node 6",
+      "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/"
+    },
+    "200": {
+      "id": "200",
+      "title": "Number of Islands",
+      "diff": "Medium",
+      "prompt": "Count four-directionally connected components of land in a rectangular grid.",
+      "hints": [
+        "One search can mark an entire island.",
+        "On each unvisited land cell, increment the count and flood-fill its component."
+      ],
+      "approach": "Every island causes exactly one new search; marking on entry prevents revisiting. This implementation mutates the grid.",
+      "code": "public int numIslands(char[][] grid) {\n    int count = 0;\n    for (int r = 0; r < grid.length; r++) {\n        for (int c = 0; c < grid[0].length; c++) {\n            if (grid[r][c] == '1') {\n                count++;\n                flood(grid, r, c);\n            }\n        }\n    }\n    return count;\n}\nprivate void flood(char[][] grid, int r, int c) {\n    if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length || grid[r][c] != '1') {\n        return;\n    }\n    grid[r][c] = '0';\n    flood(grid, r + 1, c);\n    flood(grid, r - 1, c);\n    flood(grid, r, c + 1);\n    flood(grid, r, c - 1);\n}",
+      "cost": "O(RC) time and O(RC) worst-case recursion space. A long island can overflow Java’s call stack; use an explicit stack/queue for large grids.",
+      "example": "[\"110\",\"010\",\"001\"] → 2",
+      "url": "https://leetcode.com/problems/number-of-islands/"
+    },
+    "994": {
+      "id": "994",
+      "title": "Rotting Oranges",
+      "diff": "Medium",
+      "prompt": "Every minute, rotten oranges infect fresh four-directional neighbors. Return minutes to rot all fresh oranges, or -1.",
+      "hints": [
+        "All initially rotten cells act as simultaneous distance-zero sources.",
+        "Enqueue all rotten cells first, then process BFS layers while tracking the remaining fresh count."
+      ],
+      "approach": "A fresh cell is marked rotten when enqueued, so it is scheduled once at its earliest infection minute.",
+      "code": "public int orangesRotting(int[][] grid) {\n    Queue<int[]> queue = new ArrayDeque<>();\n    int fresh = 0;\n    for (int r = 0; r < grid.length; r++) {\n        for (int c = 0; c < grid[0].length; c++) {\n            if (grid[r][c] == 2) {\n                queue.offer(new int[]{r, c});\n            } else if (grid[r][c] == 1) {\n                fresh++;\n            }\n        }\n    }\n    int[][] directions = {{1,0},{-1,0},{0,1},{0,-1}};\n    int minutes = 0;\n    while (fresh > 0 && !queue.isEmpty()) {\n        int size = queue.size();\n        for (int i = 0; i < size; i++) {\n            int[] cell = queue.poll();\n            for (int[] d : directions) {\n                int r = cell[0] + d[0];\n                int c = cell[1] + d[1];\n                if (r >= 0 && r < grid.length && c >= 0 && c < grid[0].length && grid[r][c] == 1) {\n                    grid[r][c] = 2;\n                    fresh--;\n                    queue.offer(new int[]{r, c});\n                }\n            }\n        }\n        minutes++;\n    }\n    return fresh == 0 ? minutes : -1;\n}",
+      "cost": "O(RC) time and O(RC) queue space; mutates the grid.",
+      "example": "[[2,1,1],[1,1,0],[0,1,1]] → 4",
+      "url": "https://leetcode.com/problems/rotting-oranges/"
+    },
+    "207": {
+      "id": "207",
+      "title": "Course Schedule",
+      "diff": "Medium",
+      "prompt": "Determine whether all courses can be completed given prerequisite pairs [course, prerequisite].",
+      "hints": [
+        "A course with no remaining prerequisites can be completed now.",
+        "Build edges prerequisite→course, enqueue indegree-zero nodes, and remove their outgoing dependencies."
+      ],
+      "approach": "If fewer than all vertices are processed, the remaining directed graph contains a cycle.",
+      "code": "public boolean canFinish(int numCourses, int[][] prerequisites) {\n    List<List<Integer>> graph = new ArrayList<>();\n    for (int i = 0; i < numCourses; i++) {\n        graph.add(new ArrayList<>());\n    }\n    int[] indegree = new int[numCourses];\n    for (int[] edge : prerequisites) {\n        graph.get(edge[1]).add(edge[0]);\n        indegree[edge[0]]++;\n    }\n    Queue<Integer> queue = new ArrayDeque<>();\n    for (int i = 0; i < numCourses; i++) {\n        if (indegree[i] == 0) {\n            queue.offer(i);\n        }\n    }\n    int completed = 0;\n    while (!queue.isEmpty()) {\n        int course = queue.poll();\n        completed++;\n        for (int next : graph.get(course)) {\n            indegree[next]--;\n            if (indegree[next] == 0) {\n                queue.offer(next);\n            }\n        }\n    }\n    return completed == numCourses;\n}",
+      "cost": "O(V+E) time and space including adjacency lists, indegrees, and queue. Each vertex is processed once and each edge removed once.",
+      "example": "2 courses, [[1,0]] → true; [[1,0],[0,1]] → false",
+      "url": "https://leetcode.com/problems/course-schedule/"
+    },
+    "210": {
+      "id": "210",
+      "title": "Course Schedule II",
+      "diff": "Medium",
+      "prompt": "Return a valid ordering of all courses, or an empty array if impossible.",
+      "hints": [
+        "Extend dependency elimination by recording the order.",
+        "Append each popped indegree-zero node to the result; verify that all nodes were popped."
+      ],
+      "approach": "Every course enters the output only after all its prerequisites, so a complete output is a valid topological ordering.",
+      "code": "public int[] findOrder(int numCourses, int[][] prerequisites) {\n    List<List<Integer>> graph = new ArrayList<>();\n    for (int i = 0; i < numCourses; i++) {\n        graph.add(new ArrayList<>());\n    }\n    int[] indegree = new int[numCourses];\n    for (int[] edge : prerequisites) {\n        graph.get(edge[1]).add(edge[0]);\n        indegree[edge[0]]++;\n    }\n    Queue<Integer> queue = new ArrayDeque<>();\n    for (int i = 0; i < numCourses; i++) {\n        if (indegree[i] == 0) {\n            queue.offer(i);\n        }\n    }\n    int[] order = new int[numCourses];\n    int count = 0;\n    while (!queue.isEmpty()) {\n        int current = queue.poll();\n        order[count++] = current;\n        for (int next : graph.get(current)) {\n            if (--indegree[next] == 0) {\n                queue.offer(next);\n            }\n        }\n    }\n    return count == numCourses ? order : new int[0];\n}",
+      "cost": "O(V+E) time and space, including the graph and output. Multiple correct orders may exist.",
+      "example": "4, [[1,0],[2,0],[3,1],[3,2]] → [0,1,2,3]",
+      "url": "https://leetcode.com/problems/course-schedule-ii/"
+    },
+    "802": {
+      "id": "802",
+      "title": "Find Eventual Safe States",
+      "diff": "Medium",
+      "prompt": "Return nodes from which every possible directed path eventually terminates.",
+      "hints": [
+        "Reverse the question: which nodes lead only to already-safe nodes?",
+        "Reverse edges, initialize original terminal nodes, and repeatedly reduce predecessors’ remaining outgoing counts."
+      ],
+      "approach": "A node becomes safe only after all its outgoing edges lead to safe nodes. Nodes on or leading into cycles remain.",
+      "code": "public List<Integer> eventualSafeNodes(int[][] graph) {\n    int n = graph.length;\n    List<List<Integer>> reverse = new ArrayList<>();\n    for (int i = 0; i < n; i++) {\n        reverse.add(new ArrayList<>());\n    }\n    int[] remaining = new int[n];\n    Queue<Integer> queue = new ArrayDeque<>();\n    for (int u = 0; u < n; u++) {\n        remaining[u] = graph[u].length;\n        if (remaining[u] == 0) {\n            queue.offer(u);\n        }\n        for (int v : graph[u]) {\n            reverse.get(v).add(u);\n        }\n    }\n    while (!queue.isEmpty()) {\n        int safe = queue.poll();\n        for (int previous : reverse.get(safe)) {\n            if (--remaining[previous] == 0) {\n                queue.offer(previous);\n            }\n        }\n    }\n    List<Integer> result = new ArrayList<>();\n    for (int i = 0; i < n; i++) {\n        if (remaining[i] == 0) {\n            result.add(i);\n        }\n    }\n    return result;\n}",
+      "cost": "O(V+E) time and space. Scanning node indices at the end produces sorted output without sorting.",
+      "example": "[[1,2],[2,3],[5],[0],[5],[],[]] → [2,4,5,6]",
+      "url": "https://leetcode.com/problems/find-eventual-safe-states/"
+    },
+    "684": {
+      "id": "684",
+      "title": "Redundant Connection",
+      "diff": "Medium",
+      "prompt": "An undirected tree has one extra edge. Return the removable edge appearing last in input order.",
+      "hints": [
+        "An edge creates a cycle when its endpoints are already connected.",
+        "Process edges with union-find. A failed union identifies the cycle-closing edge."
+      ],
+      "approach": "Before an edge is processed, DSU represents connectivity using earlier edges; joining vertices already connected creates a cycle.",
+      "code": "public int[] findRedundantConnection(int[][] edges) {\n    initialize(edges.length + 1);\n    for (int[] edge : edges) {\n        if (!union(edge[0], edge[1])) {\n            return edge;\n        }\n    }\n    return new int[0];\n}\nprivate int[] parent;\nprivate int[] size;\nprivate void initialize(int n) {\n    parent = new int[n];\n    size = new int[n];\n    for (int i = 0; i < n; i++) {\n        parent[i] = i;\n        size[i] = 1;\n    }\n}\nprivate int find(int x) {\n    while (x != parent[x]) {\n        parent[x] = parent[parent[x]];\n        x = parent[x];\n    }\n    return x;\n}\nprivate boolean union(int a, int b) {\n    int ra = find(a);\n    int rb = find(b);\n    if (ra == rb) {\n        return false;\n    }\n    if (size[ra] < size[rb]) {\n        int temporary = ra;\n        ra = rb;\n        rb = temporary;\n    }\n    parent[rb] = ra;\n    size[ra] += size[rb];\n    return true;\n}",
+      "cost": "O(n α(n)) amortized time and O(n) space with union by size and path compression; α is the inverse Ackermann function, effectively tiny for practical n.",
+      "example": "[[1,2],[1,3],[2,3]] → [2,3]",
+      "url": "https://leetcode.com/problems/redundant-connection/"
+    },
+    "547": {
+      "id": "547",
+      "title": "Number of Provinces",
+      "diff": "Medium",
+      "prompt": "Count connected components in an undirected adjacency matrix.",
+      "hints": [
+        "Every successful union reduces the number of components by one.",
+        "Initialize n components and union each connected upper-triangle pair."
+      ],
+      "approach": "DSU partitions vertices into exactly the components induced by the processed edges.",
+      "code": "public int findCircleNum(int[][] isConnected) {\n    int n = isConnected.length;\n    initialize(n);\n    int components = n;\n    for (int i = 0; i < n; i++) {\n        for (int j = i + 1; j < n; j++) {\n            if (isConnected[i][j] == 1 && union(i, j)) {\n                components--;\n            }\n        }\n    }\n    return components;\n}\nprivate int[] parent;\nprivate int[] size;\nprivate void initialize(int n) {\n    parent = new int[n];\n    size = new int[n];\n    for (int i = 0; i < n; i++) {\n        parent[i] = i;\n        size[i] = 1;\n    }\n}\nprivate int find(int x) {\n    while (x != parent[x]) {\n        parent[x] = parent[parent[x]];\n        x = parent[x];\n    }\n    return x;\n}\nprivate boolean union(int a, int b) {\n    int ra = find(a);\n    int rb = find(b);\n    if (ra == rb) {\n        return false;\n    }\n    if (size[ra] < size[rb]) {\n        int temporary = ra;\n        ra = rb;\n        rb = temporary;\n    }\n    parent[rb] = ra;\n    size[ra] += size[rb];\n    return true;\n}",
+      "cost": "O(n² α(n)) upper-bound time, O(n) auxiliary space excluding the input matrix. Matrix scanning alone is O(n²); DFS is also a natural solution.",
+      "example": "[[1,1,0],[1,1,0],[0,0,1]] → 2",
+      "url": "https://leetcode.com/problems/number-of-provinces/"
+    },
+    "1319": {
+      "id": "1319",
+      "title": "Number of Operations to Make Network Connected",
+      "diff": "Medium",
+      "prompt": "You may relocate redundant undirected cables. Return the fewest relocations to connect all computers, or -1.",
+      "hints": [
+        "Connecting n computers needs at least n-1 cables.",
+        "After checking cable count, count DSU components; the answer is components-1."
+      ],
+      "approach": "With enough total cables, cycles provide at least the spare cables needed to connect the remaining components.",
+      "code": "public int makeConnected(int n, int[][] connections) {\n    if (connections.length < n - 1) {\n        return -1;\n    }\n    initialize(n);\n    int components = n;\n    for (int[] edge : connections) {\n        if (union(edge[0], edge[1])) {\n            components--;\n        }\n    }\n    return components - 1;\n}\nprivate int[] parent;\nprivate int[] size;\nprivate void initialize(int n) {\n    parent = new int[n];\n    size = new int[n];\n    for (int i = 0; i < n; i++) {\n        parent[i] = i;\n        size[i] = 1;\n    }\n}\nprivate int find(int x) {\n    while (x != parent[x]) {\n        parent[x] = parent[parent[x]];\n        x = parent[x];\n    }\n    return x;\n}\nprivate boolean union(int a, int b) {\n    int ra = find(a);\n    int rb = find(b);\n    if (ra == rb) {\n        return false;\n    }\n    if (size[ra] < size[rb]) {\n        int temporary = ra;\n        ra = rb;\n        rb = temporary;\n    }\n    parent[rb] = ra;\n    size[ra] += size[rb];\n    return true;\n}",
+      "cost": "O(n + E α(n)) time and O(n) auxiliary space.",
+      "example": "n=4, [[0,1],[0,2],[1,2]] → 1",
+      "url": "https://leetcode.com/problems/number-of-operations-to-make-network-connected/"
+    },
+    "743": {
+      "id": "743",
+      "title": "Network Delay Time",
+      "diff": "Medium",
+      "prompt": "Directed nonnegative weighted edges describe signal travel times. Return when all n nodes receive a signal from k, or -1.",
+      "hints": [
+        "Fewest edges is different from smallest total weight.",
+        "Use a min-heap of tentative distances and relax outgoing edges; ignore stale heap entries."
+      ],
+      "approach": "The smallest unsettled distance is final because nonnegative edges cannot create a cheaper route through a farther node.",
+      "code": "public int networkDelayTime(int[][] times, int n, int k) {\n    List<List<int[]>> graph = new ArrayList<>();\n    for (int i = 0; i <= n; i++) {\n        graph.add(new ArrayList<>());\n    }\n    for (int[] edge : times) {\n        graph.get(edge[0]).add(new int[]{edge[1], edge[2]});\n    }\n    long[] distance = new long[n + 1];\n    Arrays.fill(distance, Long.MAX_VALUE);\n    distance[k] = 0;\n    PriorityQueue<long[]> heap = new PriorityQueue<>((a,b) -> Long.compare(a[0], b[0]));\n    heap.offer(new long[]{0, k});\n    while (!heap.isEmpty()) {\n        long[] state = heap.poll();\n        long d = state[0];\n        int u = (int) state[1];\n        if (d != distance[u]) {\n            continue;\n        }\n        for (int[] edge : graph.get(u)) {\n            long candidate = d + edge[1];\n            if (candidate < distance[edge[0]]) {\n                distance[edge[0]] = candidate;\n                heap.offer(new long[]{candidate, edge[0]});\n            }\n        }\n    }\n    long answer = 0;\n    for (int node = 1; node <= n; node++) {\n        if (distance[node] == Long.MAX_VALUE) {\n            return -1;\n        }\n        answer = Math.max(answer, distance[node]);\n    }\n    return (int) answer;\n}",
+      "cost": "O(V + E log(E+1)) time and O(V+E) space with lazy duplicate heap entries. Under a simple graph this is commonly written O((V+E) log V). Return cast is safe under the original bounds.",
+      "example": "[[2,1,1],[2,3,1],[3,4,1]], n=4,k=2 → 2",
+      "url": "https://leetcode.com/problems/network-delay-time/"
+    },
+    "1631": {
+      "id": "1631",
+      "title": "Path With Minimum Effort",
+      "diff": "Medium",
+      "prompt": "On a height grid, minimize the maximum absolute height difference along a four-directional path.",
+      "hints": [
+        "Path cost is a bottleneck maximum rather than a sum.",
+        "Dijkstra still works with candidate=max(current effort, edge difference)."
+      ],
+      "approach": "Extending a path cannot reduce its bottleneck, so the minimum-effort heap extraction is safe.",
+      "code": "public int minimumEffortPath(int[][] heights) {\n    int rows = heights.length;\n    int cols = heights[0].length;\n    int[][] best = new int[rows][cols];\n    for (int[] row : best) {\n        Arrays.fill(row, Integer.MAX_VALUE);\n    }\n    best[0][0] = 0;\n    PriorityQueue<int[]> heap = new PriorityQueue<>((a,b) -> Integer.compare(a[0],b[0]));\n    heap.offer(new int[]{0,0,0});\n    int[][] directions = {{1,0},{-1,0},{0,1},{0,-1}};\n    while (!heap.isEmpty()) {\n        int[] state = heap.poll();\n        int effort = state[0], r = state[1], c = state[2];\n        if (effort != best[r][c]) {\n            continue;\n        }\n        if (r == rows - 1 && c == cols - 1) {\n            return effort;\n        }\n        for (int[] direction : directions) {\n            int nr = r + direction[0], nc = c + direction[1];\n            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {\n                continue;\n            }\n            int candidate = Math.max(effort, Math.abs(heights[r][c] - heights[nr][nc]));\n            if (candidate < best[nr][nc]) {\n                best[nr][nc] = candidate;\n                heap.offer(new int[]{candidate,nr,nc});\n            }\n        }\n    }\n    return 0;\n}",
+      "cost": "O(RC log(RC)) time and O(RC) space since the grid has O(RC) edges. Height differences fit int under problem bounds.",
+      "example": "[[1,2,2],[3,8,2],[5,3,5]] → 2",
+      "url": "https://leetcode.com/problems/path-with-minimum-effort/"
+    },
+    "1514": {
+      "id": "1514",
+      "title": "Path with Maximum Probability",
+      "diff": "Medium",
+      "prompt": "Given undirected edges with independent success probabilities in [0,1], maximize the product along a path from start to end.",
+      "hints": [
+        "Multiplying by a probability cannot improve an already smaller path above its current value.",
+        "Use a max-heap and relax products when they improve a node’s best probability."
+      ],
+      "approach": "The greatest tentative probability can be finalized because extending any other path cannot increase its product.",
+      "code": "public double maxProbability(int n, int[][] edges, double[] succProb, int start, int end) {\n    List<List<double[]>> graph = new ArrayList<>();\n    for (int i = 0; i < n; i++) {\n        graph.add(new ArrayList<>());\n    }\n    for (int i = 0; i < edges.length; i++) {\n        graph.get(edges[i][0]).add(new double[]{edges[i][1],succProb[i]});\n        graph.get(edges[i][1]).add(new double[]{edges[i][0],succProb[i]});\n    }\n    double[] best = new double[n];\n    best[start] = 1.0;\n    PriorityQueue<double[]> heap = new PriorityQueue<>((a,b) -> Double.compare(b[0],a[0]));\n    heap.offer(new double[]{1.0,start});\n    while (!heap.isEmpty()) {\n        double[] state = heap.poll();\n        double probability = state[0];\n        int u = (int) state[1];\n        if (probability < best[u]) {\n            continue;\n        }\n        if (u == end) {\n            return probability;\n        }\n        for (double[] edge : graph.get(u)) {\n            int v = (int) edge[0];\n            double candidate = probability * edge[1];\n            if (candidate > best[v]) {\n                best[v] = candidate;\n                heap.offer(new double[]{candidate,v});\n            }\n        }\n    }\n    return 0.0;\n}",
+      "cost": "O(V+E log(E+1)) time and O(V+E) space for lazy heap entries and adjacency lists.",
+      "example": "n=3, edges=[[0,1],[1,2],[0,2]], probabilities=[0.5,0.5,0.2], 0→2 → 0.25",
+      "url": "https://leetcode.com/problems/path-with-maximum-probability/"
+    },
+    "347": {
+      "id": "347",
+      "title": "Top K Frequent Elements",
+      "diff": "Medium",
+      "prompt": "Return the k most frequent values, in any order.",
+      "hints": [
+        "Count first; retain only the k strongest candidates.",
+        "Use a min-heap keyed by frequency; whenever size exceeds k, remove the weakest."
+      ],
+      "approach": "After each insertion, the heap holds the k most frequent values seen so far, or all values if fewer exist.",
+      "code": "public int[] topKFrequent(int[] nums, int k) {\n    Map<Integer, Integer> frequency = new HashMap<>();\n    for (int x : nums) {\n        frequency.put(x, frequency.getOrDefault(x, 0) + 1);\n    }\n    PriorityQueue<Integer> heap = new PriorityQueue<>((a,b) -> Integer.compare(frequency.get(a),frequency.get(b)));\n    for (int x : frequency.keySet()) {\n        heap.offer(x);\n        if (heap.size() > k) {\n            heap.poll();\n        }\n    }\n    int[] answer = new int[k];\n    for (int i = 0; i < k; i++) {\n        answer[i] = heap.poll();\n    }\n    return answer;\n}",
+      "cost": "Expected O(n + u log(k+1)) time for u unique values; O(u+k) auxiliary space plus O(k) output. A bucket approach can achieve expected O(n) time.",
+      "example": "[1,1,1,2,2,3], k=2 → [1,2] in any order",
+      "url": "https://leetcode.com/problems/top-k-frequent-elements/"
+    },
+    "23": {
+      "id": "23",
+      "title": "Merge k Sorted Lists",
+      "diff": "Hard",
+      "prompt": "Merge k sorted linked lists into one sorted linked list.",
+      "hints": [
+        "Only the head of each remaining list can be the next global minimum.",
+        "Heap the nonnull heads; pop the smallest and insert its successor."
+      ],
+      "approach": "The heap contains one frontier node per nonempty list, enough to identify the next output node.",
+      "code": "public ListNode mergeKLists(ListNode[] lists) {\n    PriorityQueue<ListNode> heap = new PriorityQueue<>((a,b) -> Integer.compare(a.val,b.val));\n    for (ListNode node : lists) {\n        if (node != null) {\n            heap.offer(node);\n        }\n    }\n    ListNode dummy = new ListNode(0);\n    ListNode tail = dummy;\n    while (!heap.isEmpty()) {\n        ListNode node = heap.poll();\n        tail.next = node;\n        tail = node;\n        if (node.next != null) {\n            heap.offer(node.next);\n        }\n    }\n    return dummy.next;\n}",
+      "cost": "O(k + N log(k+1)) time for N total nodes, including scanning k list slots; O(k) heap space. Reuses existing nodes.",
+      "example": "[1→4→5, 1→3→4, 2→6] → 1→1→2→3→4→4→5→6",
+      "url": "https://leetcode.com/problems/merge-k-sorted-lists/"
+    },
+    "295": {
+      "id": "295",
+      "title": "Find Median from Data Stream",
+      "diff": "Hard",
+      "prompt": "Support adding integers and retrieving the median of all values seen.",
+      "hints": [
+        "Split values into a lower half and upper half.",
+        "Keep a max-heap for the lower half and min-heap for the upper; lower has equal size or one extra."
+      ],
+      "approach": "All lower values are <= all upper values. Balanced sizes make the middle element(s) available at the heap tops.",
+      "code": "class MedianFinder {\n    private final PriorityQueue<Integer> lower = new PriorityQueue<>(Comparator.reverseOrder());\n    private final PriorityQueue<Integer> upper = new PriorityQueue<>();\n    public void addNum(int num) {\n        lower.offer(num);\n        upper.offer(lower.poll());\n        if (upper.size() > lower.size()) {\n            lower.offer(upper.poll());\n        }\n    }\n    public double findMedian() {\n        if (lower.size() > upper.size()) {\n            return lower.peek();\n        }\n        return ((long) lower.peek() + upper.peek()) / 2.0;\n    }\n}",
+      "cost": "O(log n) per insertion, O(1) per median query, O(n) storage. Query assumes at least one inserted value.",
+      "example": "add 1, add 2 → median 1.5; add 3 → median 2",
+      "url": "https://leetcode.com/problems/find-median-from-data-stream/"
+    },
+    "78": {
+      "id": "78",
+      "title": "Subsets",
+      "diff": "Medium",
+      "prompt": "Return all subsets of an array of distinct integers.",
+      "hints": [
+        "Every partial selection is already a valid subset.",
+        "Add a copy of the current path, then choose each remaining index and recurse from the following index."
+      ],
+      "approach": "Increasing indices give each subset exactly one construction path. Copying prevents later backtracking from changing saved answers.",
+      "code": "public List<List<Integer>> subsets(int[] nums) {\n    List<List<Integer>> result = new ArrayList<>();\n    build(nums, 0, new ArrayList<>(), result);\n    return result;\n}\nprivate void build(int[] nums, int start, List<Integer> path, List<List<Integer>> result) {\n    result.add(new ArrayList<>(path));\n    for (int i = start; i < nums.length; i++) {\n        path.add(nums[i]);\n        build(nums, i + 1, path, result);\n        path.remove(path.size() - 1);\n    }\n}",
+      "cost": "O(n·2^n) time including copying, O(n) auxiliary recursion/path space, O(n·2^n) output.",
+      "example": "[1,2] → [[],[1],[1,2],[2]]",
+      "url": "https://leetcode.com/problems/subsets/"
+    },
+    "46": {
+      "id": "46",
+      "title": "Permutations",
+      "diff": "Medium",
+      "prompt": "Return all orderings of distinct integers.",
+      "hints": [
+        "Unlike combinations, every position can choose any unused value.",
+        "Track used indices, choose one, recurse, then undo both the path and used flag."
+      ],
+      "approach": "Each path chooses each value once; different ordered choices create different permutations.",
+      "code": "public List<List<Integer>> permute(int[] nums) {\n    List<List<Integer>> result = new ArrayList<>();\n    arrange(nums, new boolean[nums.length], new ArrayList<>(), result);\n    return result;\n}\nprivate void arrange(int[] nums, boolean[] used, List<Integer> path, List<List<Integer>> result) {\n    if (path.size() == nums.length) {\n        result.add(new ArrayList<>(path));\n        return;\n    }\n    for (int i = 0; i < nums.length; i++) {\n        if (used[i]) {\n            continue;\n        }\n        used[i] = true;\n        path.add(nums[i]);\n        arrange(nums, used, path, result);\n        path.remove(path.size() - 1);\n        used[i] = false;\n    }\n}",
+      "cost": "O(n·n!) time including copying and candidate scans, O(n) auxiliary space, O(n·n!) output.",
+      "example": "[1,2,3] → six permutations",
+      "url": "https://leetcode.com/problems/permutations/"
+    },
+    "39": {
+      "id": "39",
+      "title": "Combination Sum",
+      "diff": "Medium",
+      "prompt": "Return unique combinations of distinct positive candidate values totaling target; values may be reused.",
+      "hints": [
+        "Combinations ignore order, but repetition is allowed.",
+        "Use a start index and recurse with i rather than i+1 when choosing candidate i again."
+      ],
+      "approach": "Nondecreasing choice indices prevent reordered duplicates; positive candidates ensure the remaining target decreases.",
+      "code": "public List<List<Integer>> combinationSum(int[] candidates, int target) {\n    List<List<Integer>> result = new ArrayList<>();\n    choose(candidates, 0, target, new ArrayList<>(), result);\n    return result;\n}\nprivate void choose(int[] values, int start, int remaining, List<Integer> path, List<List<Integer>> result) {\n    if (remaining == 0) {\n        result.add(new ArrayList<>(path));\n        return;\n    }\n    for (int i = start; i < values.length; i++) {\n        if (values[i] > remaining) {\n            continue;\n        }\n        path.add(values[i]);\n        choose(values, i, remaining - values[i], path, result);\n        path.remove(path.size() - 1);\n    }\n}",
+      "cost": "Let c be candidate count and d=floor(target/min candidate). A loose upper bound is O((c+1)^(d+1) + z·d) time, including z output copies; O(d) auxiliary space and O(z·d) output. Actual work depends strongly on valid combinations.",
+      "example": "[2,3,6,7], target=7 → [[2,2,3],[7]]",
+      "url": "https://leetcode.com/problems/combination-sum/"
+    },
+    "70": {
+      "id": "70",
+      "title": "Climbing Stairs",
+      "diff": "Easy",
+      "prompt": "Count ways to climb n stairs using steps of size one or two; n >= 1.",
+      "hints": [
+        "Classify paths by their final step.",
+        "ways[i]=ways[i-1]+ways[i-2], with ways[0]=ways[1]=1."
+      ],
+      "approach": "The final step partitions all paths into two disjoint groups; keeping the previous two totals is sufficient.",
+      "code": "public int climbStairs(int n) {\n    int previous = 1;\n    int current = 1;\n    for (int i = 2; i <= n; i++) {\n        int next = previous + current;\n        previous = current;\n        current = next;\n    }\n    return current;\n}",
+      "cost": "O(n) time and O(1) space. int fits the problem’s n<=45 constraint; larger n requires a wider or arbitrary-precision type.",
+      "example": "n=4 → 5",
+      "url": "https://leetcode.com/problems/climbing-stairs/"
+    },
+    "198": {
+      "id": "198",
+      "title": "House Robber",
+      "diff": "Medium",
+      "prompt": "Maximize the sum of nonnegative house values without choosing adjacent houses.",
+      "hints": [
+        "At each house, decide whether to skip it or take it.",
+        "best[i]=max(best[i-1],best[i-2]+value[i]); retain two previous totals."
+      ],
+      "approach": "Every valid optimum either skips the current house or includes it and therefore excludes the preceding house.",
+      "code": "public int rob(int[] nums) {\n    int twoBack = 0;\n    int oneBack = 0;\n    for (int value : nums) {\n        int best = Math.max(oneBack, twoBack + value);\n        twoBack = oneBack;\n        oneBack = best;\n    }\n    return oneBack;\n}",
+      "cost": "O(n) time and O(1) auxiliary space.",
+      "example": "[2,7,9,3,1] → 12",
+      "url": "https://leetcode.com/problems/house-robber/"
+    },
+    "139": {
+      "id": "139",
+      "title": "Word Break",
+      "diff": "Medium",
+      "prompt": "Determine whether a string can be segmented into dictionary words; words may be reused.",
+      "hints": [
+        "Choosing the first matching word can block a later valid segmentation.",
+        "Let reachable[end] mean s[0:end] is segmentable. Try every earlier reachable split point within the longest word length."
+      ],
+      "approach": "The final word of a valid segmentation starts at some reachable prefix boundary. Enumerating all boundaries avoids the greedy trap.",
+      "code": "public boolean wordBreak(String s, List<String> wordDict) {\n    Set<String> dictionary = new HashSet<>(wordDict);\n    int maxLength = 0;\n    for (String word : wordDict) {\n        maxLength = Math.max(maxLength, word.length());\n    }\n    boolean[] reachable = new boolean[s.length() + 1];\n    reachable[0] = true;\n    for (int end = 1; end <= s.length(); end++) {\n        for (int start = Math.max(0, end - maxLength); start < end; start++) {\n            if (reachable[start] && dictionary.contains(s.substring(start, end))) {\n                reachable[end] = true;\n                break;\n            }\n        }\n    }\n    return reachable[s.length()];\n}",
+      "cost": "Let n=string length, L=min(max word length,n), W=total dictionary characters, D=number of words. O(W+nL²) expected time with Java substring copying and hashing; O(n+D+L) peak auxiliary space, excluding input strings. The abstract O(nL) transition count alone omits string costs.",
+      "example": "\"aaaaaaa\", dictionary=[\"aaa\",\"aaaa\"] → true (aaa + aaaa)",
+      "url": "https://leetcode.com/problems/word-break/"
+    },
+    "62": {
+      "id": "62",
+      "title": "Unique Paths",
+      "diff": "Medium",
+      "prompt": "Count paths from top-left to bottom-right of an m×n grid, moving only right or down.",
+      "hints": [
+        "The final move arrives from above or left.",
+        "Use dp[r][c]=dp[r-1][c]+dp[r][c-1]; first row and column have one path."
+      ],
+      "approach": "Each path has exactly one final predecessor, so adding their counts is exhaustive without double-counting.",
+      "code": "public int uniquePaths(int m, int n) {\n    int[][] dp = new int[m][n];\n    for (int r = 0; r < m; r++) {\n        for (int c = 0; c < n; c++) {\n            if (r == 0 || c == 0) {\n                dp[r][c] = 1;\n            } else {\n                dp[r][c] = dp[r - 1][c] + dp[r][c - 1];\n            }\n        }\n    }\n    return dp[m - 1][n - 1];\n}",
+      "cost": "O(mn) time and O(mn) space. A rolling row reduces space to O(n). Answer fits int under the original problem guarantee.",
+      "example": "m=3,n=7 → 28",
+      "url": "https://leetcode.com/problems/unique-paths/"
+    },
+    "64": {
+      "id": "64",
+      "title": "Minimum Path Sum",
+      "diff": "Medium",
+      "prompt": "Find the minimum sum along a right/down path through a nonnegative grid.",
+      "hints": [
+        "Replace counting predecessor paths with choosing the cheaper predecessor.",
+        "Initialize the origin, treat first row/column separately, then add the cell cost to min(above,left)."
+      ],
+      "approach": "Every path to a cell ends at one of those two predecessors; optimal substructure justifies taking their minimum.",
+      "code": "public int minPathSum(int[][] grid) {\n    int rows = grid.length, cols = grid[0].length;\n    int[][] dp = new int[rows][cols];\n    for (int r = 0; r < rows; r++) {\n        for (int c = 0; c < cols; c++) {\n            if (r == 0 && c == 0) {\n                dp[r][c] = grid[r][c];\n            } else if (r == 0) {\n                dp[r][c] = dp[r][c - 1] + grid[r][c];\n            } else if (c == 0) {\n                dp[r][c] = dp[r - 1][c] + grid[r][c];\n            } else {\n                dp[r][c] = Math.min(dp[r - 1][c], dp[r][c - 1]) + grid[r][c];\n            }\n        }\n    }\n    return dp[rows - 1][cols - 1];\n}",
+      "cost": "O(RC) time and O(RC) space without changing the input. Rolling-row DP reduces auxiliary space to O(C).",
+      "example": "[[1,3,1],[1,5,1],[4,2,1]] → 7",
+      "url": "https://leetcode.com/problems/minimum-path-sum/"
+    },
+    "63": {
+      "id": "63",
+      "title": "Unique Paths II",
+      "diff": "Medium",
+      "prompt": "Count right/down paths through a grid with blocked cells marked 1.",
+      "hints": [
+        "A blocked cell contributes zero paths, even at the start or end.",
+        "Use a rolling row; set blocked entries to zero and add the left count for open cells."
+      ],
+      "approach": "Before updating a column, dp[c] is the above count; after updating c-1, dp[c-1] is the left count.",
+      "code": "public int uniquePathsWithObstacles(int[][] grid) {\n    int[] dp = new int[grid[0].length];\n    dp[0] = 1;\n    for (int r = 0; r < grid.length; r++) {\n        for (int c = 0; c < grid[0].length; c++) {\n            if (grid[r][c] == 1) {\n                dp[c] = 0;\n            } else if (c > 0) {\n                dp[c] += dp[c - 1];\n            }\n        }\n    }\n    return dp[dp.length - 1];\n}",
+      "cost": "O(RC) time and O(C) auxiliary space.",
+      "example": "[[0,0,0],[0,1,0],[0,0,0]] → 2",
+      "url": "https://leetcode.com/problems/unique-paths-ii/"
+    },
+    "416": {
+      "id": "416",
+      "title": "Partition Equal Subset Sum",
+      "diff": "Medium",
+      "prompt": "Determine whether positive integers can be split into two groups of equal sum, using every value once.",
+      "hints": [
+        "One group must sum to half the total.",
+        "Reject an odd total. Use boolean reachable sums; scan sums downward for each number."
+      ],
+      "approach": "Descending order ensures each number is used at most once because reachable[sum-value] still belongs to the previous item stage.",
+      "code": "public boolean canPartition(int[] nums) {\n    int total = 0;\n    for (int x : nums) {\n        total += x;\n    }\n    if (total % 2 != 0) {\n        return false;\n    }\n    int target = total / 2;\n    boolean[] dp = new boolean[target + 1];\n    dp[0] = true;\n    for (int x : nums) {\n        for (int sum = target; sum >= x; sum--) {\n            dp[sum] = dp[sum] || dp[sum - x];\n        }\n    }\n    return dp[target];\n}",
+      "cost": "O(nS) time and O(S) space for S=total/2. This is pseudo-polynomial: the numeric sum matters, not only the number of input bits.",
+      "example": "[1,5,11,5] → true",
+      "url": "https://leetcode.com/problems/partition-equal-subset-sum/"
+    },
+    "322": {
+      "id": "322",
+      "title": "Coin Change",
+      "diff": "Medium",
+      "prompt": "With unlimited positive-denomination coins, return the minimum number to form amount, or -1.",
+      "hints": [
+        "Choosing the largest coin first is not always optimal.",
+        "Let dp[a] be minimum coins for amount a; try every possible final coin."
+      ],
+      "approach": "Each optimal combination has a final coin; removing it leaves an optimal solution for the remaining amount.",
+      "code": "public int coinChange(int[] coins, int amount) {\n    int[] dp = new int[amount + 1];\n    Arrays.fill(dp, amount + 1);\n    dp[0] = 0;\n    for (int sum = 1; sum <= amount; sum++) {\n        for (int coin : coins) {\n            if (coin <= sum) {\n                dp[sum] = Math.min(dp[sum], dp[sum - coin] + 1);\n            }\n        }\n    }\n    return dp[amount] > amount ? -1 : dp[amount];\n}",
+      "cost": "O(cA) time for c coin denominations and amount A, O(A) auxiliary space.",
+      "example": "coins=[1,3,4], amount=6 → 2 (3+3)",
+      "url": "https://leetcode.com/problems/coin-change/"
+    },
+    "518": {
+      "id": "518",
+      "title": "Coin Change II",
+      "diff": "Medium",
+      "prompt": "Count combinations of unlimited distinct positive-denomination coins that total amount; ordering does not matter.",
+      "hints": [
+        "Counting combinations requires controlling when a coin type becomes available.",
+        "Loop coin types outside and amounts upward inside; start dp[0]=1."
+      ],
+      "approach": "Each combination is counted when its largest processed coin type is added; upward iteration permits repeated use of that coin.",
+      "code": "public int change(int amount, int[] coins) {\n    int[] dp = new int[amount + 1];\n    dp[0] = 1;\n    for (int coin : coins) {\n        for (int sum = coin; sum <= amount; sum++) {\n            dp[sum] += dp[sum - coin];\n        }\n    }\n    return dp[amount];\n}",
+      "cost": "O(cA) time and O(A) space. Swapping loop order would count ordered sequences instead.",
+      "example": "amount=5, coins=[1,2,5] → 4",
+      "url": "https://leetcode.com/problems/coin-change-ii/"
+    },
+    "1143": {
+      "id": "1143",
+      "title": "Longest Common Subsequence",
+      "diff": "Medium",
+      "prompt": "Return the longest subsequence length shared by two strings; characters need not be contiguous.",
+      "hints": [
+        "Define the answer for a pair of prefixes.",
+        "If final characters match, take diagonal+1; otherwise take max(skip left character,skip right character)."
+      ],
+      "approach": "Matching final characters can extend an optimal smaller pair; when they differ, at least one final character must be omitted.",
+      "code": "public int longestCommonSubsequence(String a, String b) {\n    int[][] dp = new int[a.length() + 1][b.length() + 1];\n    for (int i = 1; i <= a.length(); i++) {\n        for (int j = 1; j <= b.length(); j++) {\n            if (a.charAt(i - 1) == b.charAt(j - 1)) {\n                dp[i][j] = dp[i - 1][j - 1] + 1;\n            } else {\n                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);\n            }\n        }\n    }\n    return dp[a.length()][b.length()];\n}",
+      "cost": "O(mn) time and O(mn) space. A rolling row reduces memory if only length is required.",
+      "example": "a=\"abcde\", b=\"ace\" → 3",
+      "url": "https://leetcode.com/problems/longest-common-subsequence/"
+    },
+    "72": {
+      "id": "72",
+      "title": "Edit Distance",
+      "diff": "Medium",
+      "prompt": "Find the minimum insertions, deletions, and replacements to transform word1 into word2.",
+      "hints": [
+        "Track how many edits convert one prefix to another.",
+        "Initialize empty-prefix costs; if characters differ take 1+min(delete,insert,replace)."
+      ],
+      "approach": "The final edit must be one of the three operations, each leaving a smaller prefix problem.",
+      "code": "public int minDistance(String a, String b) {\n    int[][] dp = new int[a.length() + 1][b.length() + 1];\n    for (int i = 0; i <= a.length(); i++) {\n        dp[i][0] = i;\n    }\n    for (int j = 0; j <= b.length(); j++) {\n        dp[0][j] = j;\n    }\n    for (int i = 1; i <= a.length(); i++) {\n        for (int j = 1; j <= b.length(); j++) {\n            if (a.charAt(i - 1) == b.charAt(j - 1)) {\n                dp[i][j] = dp[i - 1][j - 1];\n            } else {\n                dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], Math.min(dp[i - 1][j], dp[i][j - 1]));\n            }\n        }\n    }\n    return dp[a.length()][b.length()];\n}",
+      "cost": "O(mn) time and O(mn) space; O(min(m,n)) space is possible with a rolling row.",
+      "example": "\"horse\" → \"ros\" requires 3 edits",
+      "url": "https://leetcode.com/problems/edit-distance/"
+    },
+    "300": {
+      "id": "300",
+      "title": "Longest Increasing Subsequence",
+      "diff": "Medium",
+      "prompt": "Return the length of a strictly increasing subsequence in an integer array.",
+      "hints": [
+        "First define the best subsequence ending at each index.",
+        "For every j<i with nums[j]<nums[i], consider extending the best subsequence ending at j."
+      ],
+      "approach": "Every nontrivial increasing subsequence ending at i has a previous endpoint j with a smaller value.",
+      "code": "public int lengthOfLIS(int[] nums) {\n    int[] dp = new int[nums.length];\n    Arrays.fill(dp, 1);\n    int best = 0;\n    for (int i = 0; i < nums.length; i++) {\n        for (int j = 0; j < i; j++) {\n            if (nums[j] < nums[i]) {\n                dp[i] = Math.max(dp[i], dp[j] + 1);\n            }\n        }\n        best = Math.max(best, dp[i]);\n    }\n    return best;\n}",
+      "cost": "O(n²) time and O(n) space for this DP. A tails array with lower-bound binary search improves time to O(n log n).",
+      "example": "[10,9,2,5,3,7,101,18] → 4",
+      "url": "https://leetcode.com/problems/longest-increasing-subsequence/"
+    },
+    "55": {
+      "id": "55",
+      "title": "Jump Game",
+      "diff": "Medium",
+      "prompt": "Each nonnegative value is the maximum jump length from that index. Can you reach the last index?",
+      "hints": [
+        "You need reachable coverage, not a commitment to a particular jump.",
+        "Scan reachable indices and update the farthest reachable position."
+      ],
+      "approach": "All indices up to farthest are reachable because jump lengths up to each maximum are allowed.",
+      "code": "public boolean canJump(int[] nums) {\n    int farthest = 0;\n    for (int i = 0; i < nums.length; i++) {\n        if (i > farthest) {\n            return false;\n        }\n        farthest = Math.max(farthest, i + nums[i]);\n        if (farthest >= nums.length - 1) {\n            return true;\n        }\n    }\n    return true;\n}",
+      "cost": "O(n) time and O(1) space. Index arithmetic fits int for the original bounds.",
+      "example": "[2,3,1,1,4] → true; [3,2,1,0,4] → false",
+      "url": "https://leetcode.com/problems/jump-game/"
+    },
+    "121": {
+      "id": "121",
+      "title": "Best Time to Buy and Sell Stock",
+      "diff": "Easy",
+      "prompt": "Choose one earlier buy and later sell to maximize profit, or do nothing.",
+      "hints": [
+        "For a sale today, which earlier purchase price is best?",
+        "Track the lowest price so far and the best profit using each price as a sale candidate."
+      ],
+      "approach": "For every sale day, the smallest preceding price is the optimal buy; considering all sale days covers all transactions.",
+      "code": "public int maxProfit(int[] prices) {\n    int minimum = Integer.MAX_VALUE;\n    int best = 0;\n    for (int price : prices) {\n        minimum = Math.min(minimum, price);\n        best = Math.max(best, price - minimum);\n    }\n    return best;\n}",
+      "cost": "O(n) time and O(1) space. Updating minimum first permits a zero-profit same-day comparison, which does not alter the optimal answer.",
+      "example": "[7,1,5,3,6,4] → 5",
+      "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/"
+    },
+    "208": {
+      "id": "208",
+      "title": "Implement Trie (Prefix Tree)",
+      "diff": "Medium",
+      "prompt": "Implement insert, exact-word search, and prefix search for lowercase English words.",
+      "hints": [
+        "Many words can share the same prefix path.",
+        "Each node has 26 child slots and a separate end-of-word marker."
+      ],
+      "approach": "Reaching a node proves the prefix exists; exact search additionally requires its terminal marker.",
+      "code": "class Trie {\n    private static class Node {\n    Node[] next = new Node[26];\n    boolean end;\n}\nprivate final Node root = new Node();\n    public void insert(String word) {\n        Node node = root;\n        for (char c : word.toCharArray()) {\n            int index = c - 'a';\n            if (node.next[index] == null) {\n                node.next[index] = new Node();\n            }\n            node = node.next[index];\n        }\n        node.end = true;\n    }\n    private Node walk(String text) {\n        Node node = root;\n        for (char c : text.toCharArray()) {\n            node = node.next[c - 'a'];\n            if (node == null) {\n                return null;\n            }\n        }\n        return node;\n    }\n    public boolean search(String word) {\n        Node node = walk(word);\n        return node != null && node.end;\n    }\n    public boolean startsWith(String prefix) {\n        return walk(prefix) != null;\n    }\n}",
+      "cost": "O(L) time per operation for length L; O(26T) storage for T trie nodes. toCharArray uses O(L) temporary space here; charAt loops could avoid that allocation.",
+      "example": "insert(\"apple\"); search(\"app\") → false; startsWith(\"app\") → true",
+      "url": "https://leetcode.com/problems/implement-trie-prefix-tree/"
+    },
+    "211": {
+      "id": "211",
+      "title": "Design Add and Search Words Data Structure",
+      "diff": "Medium",
+      "prompt": "Store lowercase words and search patterns where dot matches any one letter.",
+      "hints": [
+        "An ordinary character follows one child, while a wildcard branches.",
+        "Use a trie plus DFS over all nonnull children when the pattern character is dot."
+      ],
+      "approach": "Each recursive state pairs a trie node with the next pattern position, preserving exactly the matched prefix.",
+      "code": "class WordDictionary {\n    private static class Node {\n    Node[] next = new Node[26];\n    boolean end;\n}\nprivate final Node root = new Node();\n    public void addWord(String word) {\n        Node node = root;\n        for (char c : word.toCharArray()) {\n            int index = c - 'a';\n            if (node.next[index] == null) {\n                node.next[index] = new Node();\n            }\n            node = node.next[index];\n        }\n        node.end = true;\n    }\n    public boolean search(String word) {\n        return match(root, word, 0);\n    }\n    private boolean match(Node node, String word, int i) {\n        if (i == word.length()) {\n            return node.end;\n        }\n        char c = word.charAt(i);\n        if (c != '.') {\n            Node next = node.next[c - 'a'];\n            return next != null && match(next, word, i + 1);\n        }\n        for (Node child : node.next) {\n            if (child != null && match(child, word, i + 1)) {\n                return true;\n            }\n        }\n        return false;\n    }\n}",
+      "cost": "Insert O(L). Search explores matching trie states: O(min(T,L·26^w)) up to a fixed alphabet factor, with w wildcards, T nodes, and length L>=1; O(L) recursion space. Storage O(26T). Wildcards can be expensive.",
+      "example": "add \"bad\",\"dad\",\"mad\"; search(\".ad\") → true",
+      "url": "https://leetcode.com/problems/design-add-and-search-words-data-structure/"
+    },
+    "648": {
+      "id": "648",
+      "title": "Replace Words",
+      "diff": "Medium",
+      "prompt": "Replace each lowercase sentence word by its shortest dictionary root prefix, if any.",
+      "hints": [
+        "Stop at the first terminal trie node while reading each word.",
+        "Build a trie of roots, scan each word until a terminal or missing edge."
+      ],
+      "approach": "The first terminal encountered is the shortest matching root, so longer roots need not be explored.",
+      "code": "public String replaceWords(List<String> dictionary, String sentence) {\n    Node root = new Node();\n    for (String word : dictionary) {\n        Node node = root;\n        for (char c : word.toCharArray()) {\n            int i = c - 'a';\n            if (node.next[i] == null) {\n                node.next[i] = new Node();\n            }\n            node = node.next[i];\n        }\n        node.end = true;\n    }\n    String[] words = sentence.split(\" \");\n    for (int i = 0; i < words.length; i++) {\n        Node node = root;\n        for (int j = 0; j < words[i].length(); j++) {\n            node = node.next[words[i].charAt(j) - 'a'];\n            if (node == null) {\n                break;\n            }\n            if (node.end) {\n                words[i] = words[i].substring(0, j + 1);\n                break;\n            }\n        }\n    }\n    return String.join(\" \", words);\n}\nprivate static class Node {\n    Node[] next = new Node[26];\n    boolean end;\n}",
+      "cost": "O(D+S) time for total dictionary characters D and sentence length S; O(26D+S) space for trie, split words, and output.",
+      "example": "roots=[\"cat\",\"bat\",\"rat\"], \"the cattle was rattled\" → \"the cat was rat\"",
+      "url": "https://leetcode.com/problems/replace-words/"
+    },
+    "136": {
+      "id": "136",
+      "title": "Single Number",
+      "diff": "Easy",
+      "prompt": "Every integer appears twice except one. Find the single value in linear time and constant space.",
+      "hints": [
+        "Find an operation that cancels identical pairs regardless of order.",
+        "XOR all values: x XOR x=0 and x XOR 0=x."
+      ],
+      "approach": "Associativity and commutativity let all paired values cancel, leaving the unique value.",
+      "code": "public int singleNumber(int[] nums) {\n    int answer = 0;\n    for (int x : nums) {\n        answer ^= x;\n    }\n    return answer;\n}",
+      "cost": "O(n) time and O(1) space. Works for negative Java int values too, since XOR operates on fixed-width bits.",
+      "example": "[4,1,2,1,2] → 4",
+      "url": "https://leetcode.com/problems/single-number/"
+    },
+    "191": {
+      "id": "191",
+      "title": "Number of 1 Bits",
+      "diff": "Easy",
+      "prompt": "Count set bits in the integer’s binary representation.",
+      "hints": [
+        "What happens to the lowest set bit when subtracting one?",
+        "Repeatedly apply n &= n-1 to clear the lowest set bit."
+      ],
+      "approach": "Each iteration removes exactly one 1 without changing the count of higher set bits.",
+      "code": "public int hammingWeight(int n) {\n    int count = 0;\n    while (n != 0) {\n        n &= n - 1;\n        count++;\n    }\n    return count;\n}",
+      "cost": "O(b) time for b set bits, at most 32 for a Java int; therefore O(1) for fixed-width ints. O(1) space.",
+      "example": "11 (binary 1011) → 3",
+      "url": "https://leetcode.com/problems/number-of-1-bits/"
+    },
+    "338": {
+      "id": "338",
+      "title": "Counting Bits",
+      "diff": "Easy",
+      "prompt": "Return the number of set bits for every integer from 0 to n.",
+      "hints": [
+        "Removing the lowest binary digit leaves a smaller solved value.",
+        "bits[i]=bits[i >>> 1]+(i & 1)."
+      ],
+      "approach": "The right shift removes the final bit; adding its value reconstructs the count.",
+      "code": "public int[] countBits(int n) {\n    int[] bits = new int[n + 1];\n    for (int i = 1; i <= n; i++) {\n        bits[i] = bits[i >>> 1] + (i & 1);\n    }\n    return bits;\n}",
+      "cost": "O(n) time, O(n) output space, and O(1) auxiliary space beyond the returned array.",
+      "example": "n=5 → [0,1,1,2,1,2]",
+      "url": "https://leetcode.com/problems/counting-bits/"
+    },
+    "79": {
+      "id": "79",
+      "title": "Word Search",
+      "diff": "Medium",
+      "prompt": "Determine whether a word can be traced through four-directionally adjacent board cells without reusing a cell within one path.",
+      "hints": [
+        "Different attempted paths need different visitation histories.",
+        "Try each start; temporarily mark a matching cell, search the next character, then restore it."
+      ],
+      "approach": "The board mark represents only the current recursion path, not every cell visited by earlier failed searches.",
+      "code": "public boolean exist(char[][] board, String word) {\n    for (int r = 0; r < board.length; r++) {\n        for (int c = 0; c < board[0].length; c++) {\n            if (search(board, word, r, c, 0)) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\nprivate boolean search(char[][] board, String word, int r, int c, int i) {\n    if (i == word.length()) {\n        return true;\n    }\n    if (r < 0 || r >= board.length || c < 0 || c >= board[0].length || board[r][c] != word.charAt(i)) {\n        return false;\n    }\n    char saved = board[r][c];\n    board[r][c] = '#'; // Input contains letters only.\n    boolean found = search(board, word, r + 1, c, i + 1)\n        || search(board, word, r - 1, c, i + 1)\n        || search(board, word, r, c + 1, i + 1)\n        || search(board, word, r, c - 1, i + 1);\n    board[r][c] = saved; // Restore even after success.\n    return found;\n}",
+      "cost": "O(RC·4^L) loose upper-bound time for word length L; O(min(L,RC)) recursion depth up to a constant terminal frame. The original board is restored. Pruning usually makes the actual search much smaller.",
+      "example": "board=[\"ABCE\",\"SFCS\",\"ADEE\"], word=\"ABCCED\" → true",
+      "url": "https://leetcode.com/problems/word-search/"
+    },
+    "714": {
+      "id": "714",
+      "title": "Best Time to Buy and Sell Stock with Transaction Fee",
+      "diff": "Medium",
+      "prompt": "Trade any number of times, hold at most one share, and pay fee once per completed transaction. Maximize profit.",
+      "hints": [
+        "The best future choice depends on whether you currently own a share.",
+        "Track cash (not holding) and hold (holding); compute both next states from the previous day’s states."
+      ],
+      "approach": "cash and hold are optimal values after the processed days under their respective inventory states. Their legal transitions exhaust all actions.",
+      "code": "public int maxProfit(int[] prices, int fee) {\n    int cash = 0;\n    int hold = -prices[0];\n    for (int i = 1; i < prices.length; i++) {\n        int nextCash = Math.max(cash, hold + prices[i] - fee);\n        int nextHold = Math.max(hold, cash - prices[i]);\n        cash = nextCash;\n        hold = nextHold;\n    }\n    return cash;\n}",
+      "cost": "O(n) time and O(1) space. Fee is charged exactly once, on selling. Return cash because an unsold share is not realized profit.",
+      "example": "prices=[1,3,2,8,4,9], fee=2 → 8",
+      "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/"
+    },
+    "76": {
+      "id": "76",
+      "title": "Minimum Window Substring",
+      "diff": "Hard",
+      "prompt": "Return the shortest substring of s containing every character of t with multiplicity, or an empty string. Inputs contain English letters.",
+      "hints": [
+        "A valid window must satisfy counts, not merely contain each distinct character once.",
+        "Maintain a deficit array and the total number of still-missing characters. Expand, then shrink while nothing is missing."
+      ],
+      "approach": "A zero missing count means every target occurrence is covered. Removing an essential occurrence makes the window invalid again.",
+      "code": "public String minWindow(String s, String t) {\n    if (t.isEmpty()) {\n        return \"\";\n    }\n    int[] need = new int[128];\n    for (char c : t.toCharArray()) {\n        need[c]++;\n    }\n    int missing = t.length();\n    int left = 0, bestStart = 0, bestLength = Integer.MAX_VALUE;\n    for (int right = 0; right < s.length(); right++) {\n        char added = s.charAt(right);\n        if (need[added] > 0) {\n            missing--;\n        }\n        need[added]--;\n        while (missing == 0) {\n            if (right - left + 1 < bestLength) {\n                bestStart = left;\n                bestLength = right - left + 1;\n            }\n            char removed = s.charAt(left++);\n            need[removed]++;\n            if (need[removed] > 0) {\n                missing++;\n            }\n        }\n    }\n    return bestLength == Integer.MAX_VALUE ? \"\" : s.substring(bestStart, bestStart + bestLength);\n}",
+      "cost": "O(|s|+|t|) time including output copying. O(1) count-array space for the fixed alphabet, O(|t|) temporary toCharArray allocation in this implementation, plus O(answer length) returned substring.",
+      "example": "s=\"ADOBECODEBANC\", t=\"ABC\" → \"BANC\"",
+      "url": "https://leetcode.com/problems/minimum-window-substring/"
+    }
+  }
+}

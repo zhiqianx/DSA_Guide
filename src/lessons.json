@@ -1,0 +1,4417 @@
+{
+  "1": {
+    "intuition": [
+      "A hash table turns a repeated search into a question you can answer from memory. Before choosing a map, finish this sentence: “For the current element, I need to know ___ about the elements already processed.” That blank determines what to store.",
+      "A set stores existence. A map can store a frequency, an index, or a group. The key must represent exactly the relationship you care about: the number itself for complement lookup, or a canonical signature for anagrams."
+    ],
+    "steps": [
+      [
+        "Define the query",
+        "For a pair sum, the missing value is target − current. For grouping, the query is which bucket has the same signature."
+      ],
+      [
+        "Choose the stored value",
+        "Store an index to return positions, a count to count matches, or a list to collect all matching items."
+      ],
+      [
+        "Decide query versus update order",
+        "Query earlier elements before inserting the current element when using the same position twice is forbidden."
+      ],
+      [
+        "Explain what the map represents",
+        "After each iteration, it summarizes the processed prefix. Use this statement to justify that every reported match is legal."
+      ]
+    ],
+    "patterns": [
+      [
+        "Membership",
+        "Use a HashSet when the answer only depends on whether a value exists."
+      ],
+      [
+        "Frequency",
+        "Use a count rather than a boolean when identical values represent multiple possible answers."
+      ],
+      [
+        "Canonical grouping",
+        "Convert equivalent objects to the same key, while ensuring nonequivalent objects stay separate."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "1",
+        "baseline": "Checking every pair costs O(n²); most work repeats the same search for a complement.",
+        "reasoning": [
+          "At index i, any earlier partner must equal target − nums[i]. A map from value to index answers that exact question.",
+          "If the complement is absent, record this value for later positions. Querying first also handles [3,3] with target 6 without ever pairing an element with itself."
+        ],
+        "trace": {
+          "caption": "Two Sum: [2,7,11,15], target 9",
+          "headers": [
+            "Current index",
+            "Needed value",
+            "Earlier map",
+            "Decision"
+          ],
+          "rows": [
+            [
+              "0: value 2",
+              "7",
+              "{}",
+              "Store 2 → 0"
+            ],
+            [
+              "1: value 7",
+              "2",
+              "{2 → 0}",
+              "Return [0,1]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "seen.get(need) retrieves the partner index; i is the current index.",
+          "A repeated value may replace an older index because this task asks for any valid pair, not every pair."
+        ],
+        "takeaway": "The useful state is the earlier prefix, not a map of the entire input."
+      },
+      {
+        "id": "49",
+        "baseline": "Comparing each word with every existing group repeats character counting and can require quadratically many comparisons.",
+        "reasoning": [
+          "Sort each word’s characters. Two words have the same sorted sequence exactly when their letter multiplicities match.",
+          "Use that sequence as a String key and append the original word, preserving its spelling. Group iteration order is irrelevant here."
+        ],
+        "trace": {
+          "caption": "Group Anagrams: build canonical keys",
+          "headers": [
+            "Word",
+            "Sorted key",
+            "Groups after insertion"
+          ],
+          "rows": [
+            [
+              "eat",
+              "aet",
+              "aet: [eat]"
+            ],
+            [
+              "tea",
+              "aet",
+              "aet: [eat, tea]"
+            ],
+            [
+              "tan",
+              "ant",
+              "aet: [eat, tea]; ant: [tan]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "computeIfAbsent creates a list only for a new key.",
+          "A char[] is converted to String because Java arrays do not provide content-based equals/hashCode by default."
+        ],
+        "takeaway": "The hard part of grouping is defining equality through the key."
+      }
+    ],
+    "optimization": "For lowercase English words, a 26-count signature can avoid sorting each word. Encode counts with separators or a proper value object; concatenating bare counts can create ambiguous keys. Include the cost of constructing and hashing keys in the analysis.",
+    "pitfalls": [
+      [
+        "Inserting too soon",
+        "A self-match can appear in Two Sum. Query before insertion."
+      ],
+      [
+        "Using existence when multiplicity matters",
+        "A set loses how many earlier matches exist; use counts for counting tasks."
+      ],
+      [
+        "Calling every lookup worst-case O(1)",
+        "State expected hash costs and account for the length of string keys."
+      ]
+    ],
+    "interview": "“The repeated work is searching the prefix. I will store each earlier value’s index, query the complement first, then insert. That gives expected linear time with linear extra memory.”",
+    "summary": "Design the query first. Store precisely the information needed to answer it later."
+  },
+  "2": {
+    "intuition": [
+      "Two pointers are useful when a proof lets you discard candidates without inspecting them one by one. On sorted input, a comparison can rule out every pair involving one endpoint.",
+      "The pointers do not always move toward each other. In compaction, a read pointer inspects input while a write pointer marks where the next accepted value belongs. What matters is the meaning of the regions they separate."
+    ],
+    "steps": [
+      [
+        "Define the candidate region",
+        "For sorted pair search, possible partners remain between left and right."
+      ],
+      [
+        "Evaluate the endpoints",
+        "Compare their sum with the target using a type wide enough for arithmetic."
+      ],
+      [
+        "Prove a move is safe",
+        "If even the largest partner is too small for left, discard left. If even the smallest partner is too large for right, discard right."
+      ],
+      [
+        "Handle output identity",
+        "Returning indices, returning unique values, and modifying an array need different duplicate and boundary rules."
+      ]
+    ],
+    "patterns": [
+      [
+        "Opposite ends",
+        "A sorted pair search eliminates one endpoint per failed comparison."
+      ],
+      [
+        "Read and write",
+        "Move accepted values into a prefix without disturbing their relative order."
+      ],
+      [
+        "Fix one, solve two",
+        "For 3Sum, choose a first value and use a pair search on the remaining suffix."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "167",
+        "baseline": "A nested pair scan tries O(n²) candidates even though the input is already sorted.",
+        "reasoning": [
+          "If numbers[left] + numbers[right] is too large, pairing right with any larger left index only increases the sum. No answer uses that right endpoint.",
+          "The symmetric argument applies to a sum that is too small. Each move removes only impossible pairs, so an existing answer stays in the interval."
+        ],
+        "trace": {
+          "caption": "Sorted pair search: [2,7,11,15], target 9",
+          "headers": [
+            "left value",
+            "right value",
+            "Sum",
+            "Action"
+          ],
+          "rows": [
+            [
+              "2",
+              "15",
+              "17",
+              "Move right leftward"
+            ],
+            [
+              "2",
+              "11",
+              "13",
+              "Move right leftward"
+            ],
+            [
+              "2",
+              "7",
+              "9",
+              "Return 1-based [1,2]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "left < right prevents using one position twice.",
+          "Casting before addition prevents overflow; adding 1 to each returned index follows this problem’s output contract."
+        ],
+        "takeaway": "Pointer movement follows from sorted order, not from the fact that there are two indices."
+      },
+      {
+        "id": "15",
+        "baseline": "Three nested loops enumerate O(n³) triples and still need a way to remove duplicate outputs.",
+        "reasoning": [
+          "Sort first. For each fixed nums[i], search the suffix for a pair summing to −nums[i]. This reduces each fixed-value search to linear time.",
+          "Skip repeated fixed values. After a match, move both endpoints and skip their repeated values so each value triplet appears once."
+        ],
+        "trace": {
+          "caption": "3Sum: sorted input [-4,-1,-1,0,1,2]",
+          "headers": [
+            "Fixed value",
+            "Pair considered",
+            "Total",
+            "Consequence"
+          ],
+          "rows": [
+            [
+              "-4",
+              "-1 and 2",
+              "-3",
+              "Increase left; this fixed value has no answer"
+            ],
+            [
+              "-1 at index 1",
+              "-1 and 2",
+              "0",
+              "Emit [-1,-1,2]"
+            ],
+            [
+              "-1 at index 1",
+              "0 and 1",
+              "0",
+              "Emit [-1,0,1]"
+            ],
+            [
+              "-1 at index 2",
+              "—",
+              "—",
+              "Skip repeated fixed value"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "left starts at i + 1, so all three positions are different.",
+          "Sorting mutates nums; copy first if the caller needs its original order."
+        ],
+        "takeaway": "Deduplicate choices at the level where they are made."
+      }
+    ],
+    "optimization": "If input is unsorted and original indices matter, a map may avoid sorting and index bookkeeping. In 3Sum, sorting costs O(n log n), but the repeated suffix scans dominate at O(n²). Report output space separately.",
+    "pitfalls": [
+      [
+        "Moving pointers on unsorted values",
+        "Without an order guarantee, the elimination proof fails."
+      ],
+      [
+        "Mixing unique indices and unique values",
+        "Different index triples may represent the same 3Sum answer."
+      ],
+      [
+        "Forgetting the smallest inputs",
+        "Check two-element pair inputs and fewer than three elements for 3Sum."
+      ]
+    ],
+    "interview": "“I can eliminate this endpoint because even its best remaining partner cannot produce the target. Each pointer moves only forward through its range, giving a linear pair scan.”",
+    "summary": "A pointer is a boundary between candidates still possible and candidates proved impossible."
+  },
+  "3": {
+    "intuition": [
+      "A sliding window is a contiguous interval whose state can be updated as its endpoints move. Instead of rebuilding the sum or counts for every substring, add the entering item and remove the departing one.",
+      "Contiguity alone does not justify the technique. You also need a safe rule for abandoning a left endpoint. Uniqueness supports that rule; sums of positive numbers do too. Negative numbers can break the sum argument."
+    ],
+    "steps": [
+      [
+        "Define window state",
+        "Write what [left,right] means and what counters or totals describe it."
+      ],
+      [
+        "Expand by one",
+        "Add input[right] before deciding whether the new window is valid."
+      ],
+      [
+        "Choose the shrink rule",
+        "For longest valid windows, shrink while invalid. For shortest valid windows, record candidates and shrink while valid."
+      ],
+      [
+        "Record at the right moment",
+        "Measure a longest window only after restoring validity; measure a shortest window before removing its left element."
+      ],
+      [
+        "Count total movement",
+        "Each endpoint advances at most n times, even though the code contains a nested loop."
+      ]
+    ],
+    "patterns": [
+      [
+        "Fixed width",
+        "Maintain exactly k elements and evaluate only once a full window exists."
+      ],
+      [
+        "Longest valid",
+        "Restore a constraint such as no duplicate characters, then maximize length."
+      ],
+      [
+        "Shortest sufficient",
+        "While the window meets a requirement, minimize its length and try discarding the leftmost value."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "3",
+        "baseline": "Checking every substring from scratch costs O(n³); even an incremental scan from every start repeats O(n²) work.",
+        "reasoning": [
+          "The existing window is distinct before the next character arrives. Therefore only the newly added character can have a count above one.",
+          "Remove characters from the left until that duplicate disappears. The resulting window is the longest valid one ending at this right boundary."
+        ],
+        "trace": {
+          "caption": "Longest unique substring: abba",
+          "headers": [
+            "Incoming",
+            "After adding",
+            "Shrink",
+            "Valid window / best"
+          ],
+          "rows": [
+            [
+              "a",
+              "a",
+              "None",
+              "a / 1"
+            ],
+            [
+              "b",
+              "ab",
+              "None",
+              "ab / 2"
+            ],
+            [
+              "b",
+              "abb",
+              "Remove a, then old b",
+              "b / 2"
+            ],
+            [
+              "a",
+              "ba",
+              "None",
+              "ba / 2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The while loop may remove several characters; one removal is not necessarily enough.",
+          "Java char counts UTF-16 code units here. A user-perceived Unicode character may contain more than one unit."
+        ],
+        "takeaway": "Maintain validity before recording the longest answer."
+      },
+      {
+        "id": "209",
+        "baseline": "Enumerating every subarray costs O(n²) with running sums.",
+        "reasoning": [
+          "Because all values are positive, extending right can only increase the sum and removing left can only decrease it.",
+          "For each right boundary, keep shortening every sufficient window. Once it becomes insufficient, further removal cannot help until right advances."
+        ],
+        "trace": {
+          "caption": "Minimum length: [2,3,1,2,4,3], target 7",
+          "headers": [
+            "Right index",
+            "Sum before shrinking",
+            "Candidate lengths",
+            "State after shrinking"
+          ],
+          "rows": [
+            [
+              "3",
+              "8",
+              "4",
+              "left=1, sum=6"
+            ],
+            [
+              "4",
+              "10",
+              "4, then 3",
+              "left=3, sum=6"
+            ],
+            [
+              "5",
+              "9",
+              "3, then 2",
+              "left=5, sum=3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Update best before subtracting nums[left].",
+          "The sentinel n + 1 distinguishes “no valid window” from a real length; return 0 for the former."
+        ],
+        "takeaway": "Longest-valid and shortest-sufficient windows record answers on opposite sides of the shrink condition."
+      }
+    ],
+    "optimization": "An array of counts can replace a map for a fixed small alphabet. A last-seen-index map can jump left for uniqueness, but left must never move backward. For exact sums with negative numbers, switch to prefix sums and a frequency map.",
+    "pitfalls": [
+      [
+        "Using if instead of while",
+        "One removal may leave the window invalid."
+      ],
+      [
+        "Measuring before restoring validity",
+        "The recorded longest range might still contain duplicates."
+      ],
+      [
+        "Ignoring positivity",
+        "A negative value can make a formerly discarded start useful again in a sum problem."
+      ]
+    ],
+    "interview": "“My window state is updated on both entry and exit. I can discard these left endpoints because the constraint changes monotonically in this setting. Each element enters and leaves at most once.”",
+    "summary": "Reuse the state of neighboring ranges, and prove why a discarded start will not be needed again."
+  },
+  "4": {
+    "intuition": [
+      "A prefix total stores the answer from the beginning up to a boundary. Subtracting two such totals cancels their shared beginning and leaves only the interval between them.",
+      "Use boundaries rather than element indices: prefix[i] is the sum of the first i elements. Then the half-open range [left,right) has sum prefix[right] − prefix[left], including when left is zero."
+    ],
+    "steps": [
+      [
+        "Define the prefix precisely",
+        "Allocate n + 1 entries and let prefix[0] describe the empty prefix."
+      ],
+      [
+        "Translate the range equation",
+        "An exact sum k means currentPrefix − earlierPrefix = k, so the earlier value must be currentPrefix − k."
+      ],
+      [
+        "Choose what to remember",
+        "Store raw prefix totals for queries, counts for the number of ranges, or earliest indices for maximum length."
+      ],
+      [
+        "Seed the empty boundary",
+        "The initial zero is a real possible start boundary, not a special-case trick."
+      ],
+      [
+        "Query before recording",
+        "When counting nonempty ranges, insert the current prefix only after looking up earlier matches."
+      ]
+    ],
+    "patterns": [
+      [
+        "Static range queries",
+        "Preprocess once and answer each sum with a subtraction."
+      ],
+      [
+        "Prefix plus hashing",
+        "Find or count earlier boundaries with a required prefix value, even when values are negative."
+      ],
+      [
+        "Prefix/suffix products",
+        "When subtraction is unavailable, combine the contribution before and after each position."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "560",
+        "baseline": "Try every start and end while maintaining a running sum: O(n²). A window based on sum comparisons does not work with arbitrary negatives.",
+        "reasoning": [
+          "A subarray ending here has sum k exactly when its starting boundary has prefix value current − k.",
+          "Store how many times each earlier prefix occurred. Equal totals at different boundaries represent different ranges and must all count."
+        ],
+        "trace": {
+          "caption": "Count sum 2 in [1,1,1]; start with frequency {0:1}",
+          "headers": [
+            "Current prefix",
+            "Need",
+            "Earlier matches",
+            "Running answer"
+          ],
+          "rows": [
+            [
+              "1",
+              "-1",
+              "0",
+              "0"
+            ],
+            [
+              "2",
+              "0",
+              "1",
+              "1"
+            ],
+            [
+              "3",
+              "1",
+              "1",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The map key and running prefix use long to protect cumulative arithmetic.",
+          "For [0,0] and k=0, query-before-update yields 1 + 2 = 3 ranges, demonstrating why multiplicity matters."
+        ],
+        "takeaway": "Each stored prefix occurrence corresponds to one possible starting boundary."
+      },
+      {
+        "id": "303",
+        "baseline": "Summing each requested interval separately can take O(n) per query.",
+        "reasoning": [
+          "Build prefix[i+1] by adding nums[i] to prefix[i]. A query uses two totals that share all values before left.",
+          "The public query uses an inclusive right index, so convert it to the exclusive boundary right + 1 before subtracting."
+        ],
+        "trace": {
+          "caption": "Immutable sums for [-2,0,3,-5,2,-1]",
+          "headers": [
+            "Boundary / query",
+            "Calculation",
+            "Result"
+          ],
+          "rows": [
+            [
+              "prefix array",
+              "Start at 0 and accumulate",
+              "[0,-2,-2,1,-4,-2,-3]"
+            ],
+            [
+              "sumRange(0,2)",
+              "prefix[3] − prefix[0]",
+              "1"
+            ],
+            [
+              "sumRange(2,5)",
+              "prefix[6] − prefix[2]",
+              "-1"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The extra array entry handles ranges beginning at zero uniformly.",
+          "NumArray is a named class: construct it once, then call sumRange repeatedly."
+        ],
+        "takeaway": "Be explicit about whether an index names an element or a boundary."
+      }
+    ],
+    "optimization": "Prefix totals are excellent when the array stays unchanged. A single update can invalidate many later prefixes, so frequent updates need another structure. For Product of Array Except Self, store left products and sweep backward with a running right product; division is unnecessary and zeros are handled naturally.",
+    "pitfalls": [
+      [
+        "Forgetting prefix zero",
+        "Ranges beginning at the first element disappear."
+      ],
+      [
+        "Storing only distinct prefix values",
+        "You lose distinct starts with equal totals."
+      ],
+      [
+        "Using prefix subtraction for minimum",
+        "Minimum has no inverse operation that removes the shared prefix."
+      ]
+    ],
+    "interview": "“I will express the range answer as a difference between two boundaries. For each current boundary, a map counts how many earlier boundaries have the required total.”",
+    "summary": "Turn a range question into a relationship between two prefix boundaries."
+  },
+  "5": {
+    "intuition": [
+      "Sorting pays an upfront cost to make a global relationship local. Equal keys become adjacent, interval starts become ordered, and a scan can decide when a result is complete.",
+      "The key question is not simply whether sorting is allowed. Ask what becomes provably easier after sorting, and whether you need to preserve the original positions or order."
+    ],
+    "steps": [
+      [
+        "Choose the ordering",
+        "Identify the property that should become adjacent or monotone: starts, ends, values, or canonical signatures."
+      ],
+      [
+        "Define the scan summary",
+        "Track only what the processed region must tell the next item."
+      ],
+      [
+        "Prove when output is final",
+        "Use the sorted order to show that no later item can change a completed result."
+      ],
+      [
+        "Account for sorting",
+        "Include comparison cost, workspace, and input mutation in your explanation."
+      ]
+    ],
+    "patterns": [
+      [
+        "Sort then merge",
+        "Ordering interval starts turns many overlap comparisons into a single forward scan."
+      ],
+      [
+        "Sort inside each item",
+        "Canonicalize an object, such as the letters of a word, to make equivalence easy to test."
+      ],
+      [
+        "Custom comparator",
+        "Order objects according to the final objective; Largest Number compares a+b with b+a, not ordinary numeric order."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "56",
+        "baseline": "Repeatedly comparing and merging arbitrary overlapping pairs can revisit intervals many times.",
+        "reasoning": [
+          "Sort intervals by start. The next interval either extends the last merged interval or begins a new disjoint result.",
+          "If its start exceeds the last end, every later start does too. That proves the previous merged interval is finished."
+        ],
+        "trace": {
+          "caption": "Sort-and-scan view of [[8,10],[2,6],[1,3]]",
+          "headers": [
+            "Sorted interval",
+            "Last output",
+            "Action"
+          ],
+          "rows": [
+            [
+              "[1,3]",
+              "None",
+              "Append [1,3]"
+            ],
+            [
+              "[2,6]",
+              "[1,3]",
+              "Extend to [1,6]"
+            ],
+            [
+              "[8,10]",
+              "[1,6]",
+              "Finalize [1,6]; append [8,10]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Integer.compare avoids subtraction overflow in the comparator.",
+          "Cloning a newly appended interval prevents later end updates from changing that input interval’s contents, though the input array is still reordered."
+        ],
+        "takeaway": "Sorting supplies the proof that a completed interval will never need reopening."
+      },
+      {
+        "id": "49",
+        "baseline": "Pairwise anagram testing repeats work for the same words.",
+        "reasoning": [
+          "Instead of sorting the whole input, sort the characters inside each word. That gives each equivalence class a single canonical representation.",
+          "A map then collects words by canonical key. Sorting and hashing solve different parts: defining equality and finding the group."
+        ],
+        "trace": {
+          "caption": "Canonicalization: [bat,tab,eat,tea]",
+          "headers": [
+            "Original",
+            "Sorted characters",
+            "Destination"
+          ],
+          "rows": [
+            [
+              "bat",
+              "abt",
+              "New group abt"
+            ],
+            [
+              "tab",
+              "abt",
+              "Existing group abt"
+            ],
+            [
+              "eat",
+              "aet",
+              "New group aet"
+            ],
+            [
+              "tea",
+              "aet",
+              "Existing group aet"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Keep the original s in the result, not the sorted key.",
+          "For n words of maximum length k, sorting happens n times on length-k data; it is not O(n log n)."
+        ],
+        "takeaway": "Specify exactly what is sorted and what one comparison or key construction costs."
+      }
+    ],
+    "optimization": "If keys come from a small fixed universe, counting can replace comparison sorting. If data is already sorted, preserve that advantage and skip the sort. When original indices must survive, sort value/index pairs or choose an approach that leaves the array intact.",
+    "pitfalls": [
+      [
+        "Sorting by the wrong field",
+        "Merging uses starts; selecting the most compatible intervals uses ends."
+      ],
+      [
+        "Treating comparison as always O(1)",
+        "Comparing long strings or concatenated keys can inspect many characters."
+      ],
+      [
+        "Assuming sorting is free of side effects",
+        "Arrays.sort changes the passed array; document or avoid that mutation."
+      ]
+    ],
+    "interview": "“After ordering by this key, I can finalize each group when the key changes. I will justify the linear scan separately from the sorting cost and explain whether input order changes.”",
+    "summary": "Sort to create a useful guarantee, then spend that guarantee in a simple scan."
+  },
+  "6": {
+    "intuition": [
+      "Binary search repeatedly keeps the half that can still contain the answer. A sorted array is one way to get this property; the deeper requirement is a monotone decision that separates impossible positions from possible ones.",
+      "An exact search asks whether one value exists. A boundary search asks where a condition first becomes true. Duplicates make the distinction important: finding an arbitrary equal element does not locate the beginning of its block."
+    ],
+    "steps": [
+      [
+        "Write the interval convention",
+        "Choose closed [left,right] or half-open [left,right). Do not mix their loop conditions or updates."
+      ],
+      [
+        "Define the decision",
+        "For lower bound, the condition is nums[mid] >= target. For exact search, equality can return immediately."
+      ],
+      [
+        "Remove a proven impossible region",
+        "Keep mid when it could be the boundary; discard it when it is known to fail."
+      ],
+      [
+        "Prove progress and termination",
+        "Each update must strictly shrink the candidate range. At exit, check whether a found boundary actually contains the target."
+      ]
+    ],
+    "patterns": [
+      [
+        "Exact search",
+        "Return an index on equality or -1 after the candidate interval becomes empty."
+      ],
+      [
+        "First valid boundary",
+        "Keep mid as the right boundary when it meets the condition."
+      ],
+      [
+        "Rotated sorted array",
+        "Identify which half is sorted, then test whether the target falls in that half’s value range."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "704",
+        "baseline": "A linear scan uses O(n) comparisons despite the sorted input.",
+        "reasoning": [
+          "Keep a closed interval that contains the target if the target exists. If the middle value is too small, everything at or before it is too small.",
+          "Discard mid with mid + 1 or mid − 1. Equality is handled before discarding either half."
+        ],
+        "trace": {
+          "caption": "Exact search: [-1,0,3,5,9,12], target 9",
+          "headers": [
+            "left..right",
+            "mid / value",
+            "Action"
+          ],
+          "rows": [
+            [
+              "0..5",
+              "2 / 3",
+              "left = 3"
+            ],
+            [
+              "3..5",
+              "4 / 9",
+              "Return 4"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "left <= right checks the final single candidate.",
+          "left + (right − left) / 2 avoids adding two potentially large indices."
+        ],
+        "takeaway": "The update rules are a consequence of the closed-interval invariant."
+      },
+      {
+        "id": "34",
+        "baseline": "A scan can find both ends in O(n), but the duplicate block has searchable boundaries.",
+        "reasoning": [
+          "Find the first value >= target, then the first value > target. The target’s block is the half-open interval between those boundaries.",
+          "The first boundary may equal n or point to a different value. Reject those cases before indexing or returning a range."
+        ],
+        "trace": {
+          "caption": "Boundaries in [5,7,7,8,8,10], target 8",
+          "headers": [
+            "Search",
+            "Midpoint decisions",
+            "Boundary"
+          ],
+          "rows": [
+            [
+              "First >= 8",
+              "index 3 qualifies; 1 and 2 fail",
+              "3"
+            ],
+            [
+              "First > 8",
+              "index 3 fails; 5 qualifies; 4 fails",
+              "5"
+            ],
+            [
+              "Inclusive answer",
+              "[first, afterLast − 1]",
+              "[3,4]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "right starts at nums.length because a boundary may lie after the final element.",
+          "A strict comparison flag avoids searching for target + 1, which could overflow."
+        ],
+        "takeaway": "Search for the boundary you need, rather than repairing an arbitrary match."
+      }
+    ],
+    "optimization": "The O(log n) guarantee counts comparisons on random-access data. Repeatedly finding a midpoint in a linked list does not have the same cost. For rotated arrays with duplicates, equal endpoints can hide which half is sorted, and worst-case linear work may be necessary.",
+    "pitfalls": [
+      [
+        "Combining incompatible templates",
+        "A half-open loop and closed-interval update can skip the answer."
+      ],
+      [
+        "Returning a boundary without validating it",
+        "The insertion point need not contain the target."
+      ],
+      [
+        "Keeping the same interval",
+        "Updates such as left = mid can stall with two candidates."
+      ]
+    ],
+    "interview": "“My interval contains every remaining candidate. This comparison rules out one half, and the update strictly shrinks the interval. For duplicates I will search two boundaries rather than one arbitrary occurrence.”",
+    "summary": "Define the boundary and interval before writing the loop."
+  },
+  "7": {
+    "intuition": [
+      "Sometimes checking a proposed answer is much easier than constructing the best answer directly. Binary search on the answer repeatedly asks whether a candidate limit is sufficient.",
+      "You need a proof of monotonicity. If speed k finishes all piles in time, every higher speed also does. The feasibility sequence is therefore false, false, …, true, true; the task is to find its first true value."
+    ],
+    "steps": [
+      [
+        "Name the answer variable",
+        "Search a speed, capacity, or maximum permitted cost, rather than an array index."
+      ],
+      [
+        "Build a correct feasibility check",
+        "Decide whether one candidate can satisfy the original constraints, preserving order or other restrictions."
+      ],
+      [
+        "Prove monotonicity",
+        "Explain why increasing or decreasing the candidate cannot reverse feasibility in the wrong direction."
+      ],
+      [
+        "Choose valid bounds",
+        "Use a lower bound no answer can beat and an upper bound known to work."
+      ],
+      [
+        "Find the first feasible value",
+        "On success keep mid as a candidate; on failure discard mid and everything smaller."
+      ]
+    ],
+    "patterns": [
+      [
+        "Minimum sufficient resource",
+        "Search the smallest speed or capacity that meets a deadline."
+      ],
+      [
+        "Minimize the maximum",
+        "Check whether all work can be split while keeping each group below a candidate limit."
+      ],
+      [
+        "Maximize a feasible minimum",
+        "Reverse the predicate direction and use a last-true search with matching boundary rules."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "875",
+        "baseline": "Trying every speed up to the largest pile costs O(nM).",
+        "reasoning": [
+          "At speed k, each pile takes ceil(pile/k) hours because an hour cannot be shared between piles. Add these hours and compare with h.",
+          "Speed 1 is a lower bound. The largest pile is feasible when h is at least the number of piles. Higher speed never increases the required hours."
+        ],
+        "trace": {
+          "caption": "Koko: [3,6,7,11], h=8; search [1,11]",
+          "headers": [
+            "Speed",
+            "Hours",
+            "Decision"
+          ],
+          "rows": [
+            [
+              "6",
+              "1+1+2+2 = 6",
+              "Feasible: right=6"
+            ],
+            [
+              "3",
+              "1+2+3+4 = 10",
+              "Too slow: left=4"
+            ],
+            [
+              "5",
+              "1+2+2+3 = 8",
+              "Feasible: right=5"
+            ],
+            [
+              "4",
+              "1+2+2+3 = 8",
+              "Feasible: answer 4"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "(pile + (long) mid − 1) / mid computes a ceiling using integer arithmetic.",
+          "hours is long because many individually small terms may have a large total."
+        ],
+        "takeaway": "Search correctness depends on both the monotone predicate and safe arithmetic."
+      },
+      {
+        "id": "1011",
+        "baseline": "Testing every capacity between the largest weight and total weight repeats too many full scans.",
+        "reasoning": [
+          "For a fixed capacity, load the longest next prefix that fits each day. Stopping a day earlier cannot reduce the number of remaining days for positive, ordered packages.",
+          "Increasing capacity cannot require more days. The largest weight is the lower bound; the total weight ships everything in one day."
+        ],
+        "trace": {
+          "caption": "Shipping [1,2,3,1,1] within 4 days",
+          "headers": [
+            "Capacity",
+            "Greedy daily loads",
+            "Feasible?"
+          ],
+          "rows": [
+            [
+              "2",
+              "Cannot carry package of weight 3",
+              "Outside the valid bounds"
+            ],
+            [
+              "3",
+              "[1,2] | [3] | [1,1]",
+              "Yes: 3 days"
+            ],
+            [
+              "5",
+              "[1,2] | [3,1,1]",
+              "Yes: 2 days"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The scan keeps package order; sorting weights would solve a different problem.",
+          "When a package does not fit, begin a new day and then add that same package."
+        ],
+        "takeaway": "Prove the checking algorithm before placing it inside binary search."
+      }
+    ],
+    "optimization": "Stop a feasibility scan early once it has already exceeded the allowed hours or days. Total time is number of checks × work per check: typically O(n log R) for search-range size R, not merely O(log n).",
+    "pitfalls": [
+      [
+        "Searching without monotonicity",
+        "A true/false/true feasibility pattern cannot be binary-searched this way."
+      ],
+      [
+        "Choosing an infeasible upper bound",
+        "The first-true search relies on an answer inside the interval."
+      ],
+      [
+        "Confusing at most and exactly",
+        "Finishing within d days allows fewer days; the predicate must match that wording."
+      ]
+    ],
+    "interview": "“I will first solve the yes/no version for a fixed capacity. Since any feasible capacity remains feasible when increased, I can binary-search the smallest one, paying a linear scan per check.”",
+    "summary": "Turn optimization into a monotone decision problem."
+  },
+  "8": {
+    "intuition": [
+      "Intervals describe coverage. Merging asks for the union of that coverage, while scheduling asks which intervals to keep. Similar pictures can therefore require different sorting rules and proofs.",
+      "Start with endpoint semantics. Closed [1,3] and [3,5] intersect at 3; half-open [1,3) and [3,5) do not. The comparison operator encodes this decision."
+    ],
+    "steps": [
+      [
+        "State overlap semantics",
+        "Decide whether touching counts as intersection."
+      ],
+      [
+        "Exploit the available order",
+        "Sort by start unless the input already supplies sorted, disjoint intervals."
+      ],
+      [
+        "Maintain a current union",
+        "Extend its end with max(currentEnd,nextEnd), including nested intervals."
+      ],
+      [
+        "Finalize only after a gap",
+        "Once the next start is beyond the current end, later sorted starts cannot reconnect that union."
+      ]
+    ],
+    "patterns": [
+      [
+        "Merge all coverage",
+        "Sort starts and maintain the last output interval."
+      ],
+      [
+        "Insert into ordered coverage",
+        "Copy intervals before the new one, merge overlaps, then copy those after it."
+      ],
+      [
+        "Select compatible intervals",
+        "Use an earliest-finish greedy argument instead of merging coverage."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "56",
+        "baseline": "Checking all pairs detects overlap but does not directly organize transitive chains of overlap.",
+        "reasoning": [
+          "After sorting starts, compare each interval only with the last merged result. Earlier output intervals are already separated by a gap.",
+          "When overlap occurs, retain the smaller start already stored and take the larger end. A contained interval must never shorten the union."
+        ],
+        "trace": {
+          "caption": "Closed interval union: [[1,5],[2,3],[5,7],[9,10]]",
+          "headers": [
+            "Interval",
+            "Current union",
+            "Reason"
+          ],
+          "rows": [
+            [
+              "[1,5]",
+              "[1,5]",
+              "Begin"
+            ],
+            [
+              "[2,3]",
+              "[1,5]",
+              "Contained; retain end 5"
+            ],
+            [
+              "[5,7]",
+              "[1,7]",
+              "Touching counts as overlap"
+            ],
+            [
+              "[9,10]",
+              "New [9,10]",
+              "Gap finalizes [1,7]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The gap test uses lastEnd < nextStart; equality stays in the merge branch.",
+          "Math.max is necessary even though starts are sorted, because ends need not be."
+        ],
+        "takeaway": "Sorted starts do not imply sorted ends."
+      },
+      {
+        "id": "57",
+        "baseline": "Appending and sorting would work in O(n log n), but discards the input’s stronger guarantee.",
+        "reasoning": [
+          "The existing intervals are already sorted and disjoint. They fall into three consecutive regions: strictly before, intersecting, and strictly after the new interval.",
+          "As overlaps extend the new end, more intervals can join the intersecting region. Use the updated end in the loop condition."
+        ],
+        "trace": {
+          "caption": "Insert [2,5] into [[1,3],[6,9]]",
+          "headers": [
+            "Phase",
+            "Action",
+            "Result so far"
+          ],
+          "rows": [
+            [
+              "Before",
+              "No interval ends before 2",
+              "[]"
+            ],
+            [
+              "Overlap",
+              "Merge [1,3], giving [1,5]",
+              "[]"
+            ],
+            [
+              "Emit merged",
+              "Append [1,5]",
+              "[[1,5]]"
+            ],
+            [
+              "After",
+              "Append [6,9]",
+              "[[1,5],[6,9]]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Local start and end variables avoid changing newInterval itself.",
+          "Untouched interval arrays are shared with the input; callers needing fully independent results should clone them."
+        ],
+        "takeaway": "Use an input guarantee to remove work, not just to simplify a proof."
+      }
+    ],
+    "optimization": "Insertion is O(n) when order and disjointness are guaranteed. General merging is O(n log n) because of sorting. If only the count of simultaneous overlaps is needed, sweep events instead of constructing merged intervals.",
+    "pitfalls": [
+      [
+        "Replacing rather than maximizing the end",
+        "A nested interval can accidentally shrink coverage."
+      ],
+      [
+        "Using one overlap rule everywhere",
+        "Scheduling may allow touching even when merging treats it as overlap."
+      ],
+      [
+        "Resorting guaranteed ordered input",
+        "Unnecessary sorting loses the linear insertion bound."
+      ]
+    ],
+    "interview": "“I will clarify whether endpoints overlap, then maintain the union of the current overlapping run. A gap proves that run is final because all future starts are larger.”",
+    "summary": "Choose between coverage, compatibility, and concurrency before choosing the interval algorithm."
+  },
+  "9": {
+    "intuition": [
+      "A sweep line represents changes instead of every position. An interval adds an amount at its start and removes it when it stops contributing. Scanning events in order reconstructs the active total.",
+      "This is a sparse prefix sum. A difference array stores events at every coordinate; an ordered map stores only coordinates where something changes. The endpoint convention decides when removal occurs."
+    ],
+    "steps": [
+      [
+        "Define the active quantity",
+        "It may be passengers, overlapping intervals, or accumulated bookings."
+      ],
+      [
+        "Encode start and stop events",
+        "Add the contribution at the start and subtract it at the first coordinate where it no longer applies."
+      ],
+      [
+        "Combine equal coordinates",
+        "Make simultaneous changes follow the intended endpoint semantics."
+      ],
+      [
+        "Sweep in order",
+        "Accumulate deltas and check capacity or update the maximum active count."
+      ]
+    ],
+    "patterns": [
+      [
+        "Half-open activity",
+        "For a trip from pickup to drop-off, remove passengers at drop-off before interpreting the onward segment."
+      ],
+      [
+        "Closed integer intervals",
+        "For [l,r], add at l and remove at r+1; this requires discrete coordinates."
+      ],
+      [
+        "Dense range updates",
+        "A bounded difference array turns each update into two writes followed by one prefix scan."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "1094",
+        "baseline": "Simulating every passenger at every position wastes work across long stretches with no changes.",
+        "reasoning": [
+          "For [passengers,start,end], add passengers at start and subtract them at end. Riders leaving at x free seats for riders boarding at x.",
+          "A TreeMap combines all changes at each coordinate. Only the total on the segment after that coordinate needs a capacity check."
+        ],
+        "trace": {
+          "caption": "Car Pooling: [[2,1,5],[3,3,7]], capacity 4",
+          "headers": [
+            "Position",
+            "Delta",
+            "Onboard",
+            "Decision"
+          ],
+          "rows": [
+            [
+              "1",
+              "+2",
+              "2",
+              "Within capacity"
+            ],
+            [
+              "3",
+              "+3",
+              "5",
+              "Over capacity: false"
+            ],
+            [
+              "5",
+              "-2",
+              "3",
+              "Not reached after early return"
+            ],
+            [
+              "7",
+              "-3",
+              "0",
+              "Not reached after early return"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "merge(position, delta, Integer::sum) handles multiple trips sharing a position.",
+          "The ordered map is essential; HashMap iteration would not follow the route."
+        ],
+        "takeaway": "The state describes the interval after an event coordinate."
+      },
+      {
+        "id": "2406",
+        "baseline": "Trying assignments to groups can branch exponentially, although simultaneous overlap gives a direct lower bound.",
+        "reasoning": [
+          "At any point with k active intervals, at least k groups are necessary. Processing starts in order and reusing any finished group also achieves this maximum overlap bound.",
+          "Because endpoints are closed integers, [1,3] is still active at 3. Remove its contribution at 4, not at 3."
+        ],
+        "trace": {
+          "caption": "Groups for closed intervals [[1,3],[3,5]]",
+          "headers": [
+            "Coordinate",
+            "Combined delta",
+            "Active / maximum"
+          ],
+          "rows": [
+            [
+              "1",
+              "+1",
+              "1 / 1"
+            ],
+            [
+              "3",
+              "+1",
+              "2 / 2"
+            ],
+            [
+              "4",
+              "-1",
+              "1 / 2"
+            ],
+            [
+              "6",
+              "-1",
+              "0 / 2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Convert to long before computing end + 1.",
+          "This solution computes only the minimum count, not an actual assignment of interval IDs to groups."
+        ],
+        "takeaway": "A maximum-overlap lower bound is tight because ended groups can be reused."
+      }
+    ],
+    "optimization": "Use an array when coordinates are small and dense, an ordered map when sparse, or sort an event list. An array costs O(n+U) for coordinate universe U; sorted sparse events cost O(n log n). Coordinate compression preserves order but not physical distances.",
+    "pitfalls": [
+      [
+        "Removing a closed interval at its end",
+        "You miss overlap at a shared endpoint."
+      ],
+      [
+        "Checking halfway through equal-position changes",
+        "An artificial transient total can violate capacity even when the real state does not."
+      ],
+      [
+        "Allocating by the largest sparse coordinate",
+        "A few events should not require a billion-element array."
+      ]
+    ],
+    "interview": "“Only start and stop positions change the answer. I will encode their deltas, make equal-coordinate behavior explicit, and scan in order while maintaining the active total.”",
+    "summary": "Store where the state changes, then recover the state by accumulation."
+  },
+  "10": {
+    "intuition": [
+      "A linked-list problem is often a problem about preserving reachability while changing links. Unlike an array index, a next pointer may be the only reference you have to the unprocessed suffix.",
+      "Draw a processed region and an untouched region. Before assigning any next field, identify which node references would otherwise become unreachable. Dummy nodes simplify cases where the head itself changes."
+    ],
+    "steps": [
+      [
+        "Name each pointer’s role",
+        "Use roles such as previous, current, next, and tail rather than treating pointers as interchangeable."
+      ],
+      [
+        "Save before rewiring",
+        "Preserve the next unprocessed node before changing current.next."
+      ],
+      [
+        "Maintain a region invariant",
+        "The processed prefix must already have the desired structure while the suffix remains reachable."
+      ],
+      [
+        "Handle the returned head",
+        "Return the new head or dummy.next, not whichever cursor happened to finish the loop."
+      ]
+    ],
+    "patterns": [
+      [
+        "Reverse a chain",
+        "Move one node at a time from the untouched suffix to the front of the reversed prefix."
+      ],
+      [
+        "Merge sorted chains",
+        "Attach the smaller current head and advance only that list."
+      ],
+      [
+        "Dummy head plus gap",
+        "Deletion near the head becomes a normal predecessor-link update; a pointer gap locates a node from the end."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "206",
+        "baseline": "Collecting node values and building a new reversed list costs O(n) extra space and creates different nodes.",
+        "reasoning": [
+          "Let prev be the reversed prefix and current the first untouched node. Save current.next before redirecting current.next toward prev.",
+          "Advance prev to the node just processed and current to the saved suffix. When current is null, prev is the new head."
+        ],
+        "trace": {
+          "caption": "Reverse 1 → 2 → 3",
+          "headers": [
+            "Before step",
+            "Saved next",
+            "After rewiring"
+          ],
+          "rows": [
+            [
+              "prev=null, current=1",
+              "2",
+              "1 → null; prev=1"
+            ],
+            [
+              "prev=1, current=2",
+              "3",
+              "2 → 1 → null; prev=2"
+            ],
+            [
+              "prev=2, current=3",
+              "null",
+              "3 → 2 → 1 → null; prev=3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The order of the four assignments matters: save, redirect, advance prev, advance current.",
+          "An empty input skips the loop and returns null; a single node also works without a special case."
+        ],
+        "takeaway": "A saved reference is what makes destructive rewiring safe."
+      },
+      {
+        "id": "21",
+        "baseline": "Copying all values, sorting them, and rebuilding a list ignores both sorted inputs and costs extra storage.",
+        "reasoning": [
+          "The smaller of the two current heads is the smallest remaining node overall. Attach it to tail and advance its source list.",
+          "Once one list ends, its partner’s suffix is already sorted and can be attached with one assignment."
+        ],
+        "trace": {
+          "caption": "Merge 1 → 3 with 2 → 4",
+          "headers": [
+            "Heads compared",
+            "Attach",
+            "Output prefix"
+          ],
+          "rows": [
+            [
+              "1 and 2",
+              "1 from a",
+              "1"
+            ],
+            [
+              "3 and 2",
+              "2 from b",
+              "1 → 2"
+            ],
+            [
+              "3 and 4",
+              "3 from a",
+              "1 → 2 → 3"
+            ],
+            [
+              "a exhausted",
+              "Remaining b",
+              "1 → 2 → 3 → 4"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The dummy node provides a stable predecessor for the first result node.",
+          "Reusing nodes changes the original links; this is not an independent copy of the lists."
+        ],
+        "takeaway": "Tail marks where the next proven-smallest node belongs."
+      }
+    ],
+    "optimization": "Iterative reversal uses O(1) auxiliary space; a recursive version retains O(n) call frames. For two-pass list tasks, a pointer gap can sometimes remove the length pass, but only if the gap and null conditions are clearly defined.",
+    "pitfalls": [
+      [
+        "Overwriting next too early",
+        "The remaining suffix may be lost."
+      ],
+      [
+        "Returning the moving cursor",
+        "At loop exit it is often null; return the saved head or prev."
+      ],
+      [
+        "Ignoring aliasing",
+        "Relinking shared input nodes affects every external reference to those nodes."
+      ]
+    ],
+    "interview": "“I will preserve the unprocessed suffix before each link update. At every step, this prefix is already correct and this pointer is the only boundary I need to advance.”",
+    "summary": "Reason about reachable regions before reasoning about pointer assignments."
+  },
+  "11": {
+    "intuition": [
+      "When repeatedly following a deterministic next link, the walk either ends or eventually revisits a node. Two cursors moving at different speeds can detect that repetition without storing every visited node.",
+      "The same speed ratio locates a midpoint in an acyclic list: when fast has traveled twice as far, slow has traveled about halfway. Cycle detection and midpoint search share a loop shape but have different stopping arguments."
+    ],
+    "steps": [
+      [
+        "Define the walk",
+        "Identify one next transition: a list link or an array value interpreted as the next index."
+      ],
+      [
+        "Set the speeds",
+        "Advance slow once and fast twice per iteration."
+      ],
+      [
+        "Check before dereferencing",
+        "Both fast and fast.next must exist before taking two steps."
+      ],
+      [
+        "Interpret termination",
+        "Reaching null proves an acyclic walk; meeting after movement proves a cycle. For a midpoint, use where slow stops."
+      ]
+    ],
+    "patterns": [
+      [
+        "Cycle detection",
+        "Compare node identity after moving; equal values alone are irrelevant."
+      ],
+      [
+        "Middle of a chain",
+        "Choose initialization and stopping rules according to first-middle or second-middle requirements."
+      ],
+      [
+        "Functional graph",
+        "An array can define a next-index function; Floyd’s method can then find a repeated-state cycle."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "141",
+        "baseline": "A set of node identities detects repetition in O(n) time but needs O(n) memory.",
+        "reasoning": [
+          "Once both pointers are in a cycle of length L, fast gains one position per iteration relative to slow. Their relative offset reaches zero within at most L iterations.",
+          "Compare references after advancing. Initially both are at head even in an acyclic list, so that initial equality does not prove a cycle."
+        ],
+        "trace": {
+          "caption": "Cycle 1 → 2 → 3 → the same node 2",
+          "headers": [
+            "Iteration",
+            "slow",
+            "fast",
+            "Result"
+          ],
+          "rows": [
+            [
+              "Start",
+              "1",
+              "1",
+              "Do not compare yet"
+            ],
+            [
+              "1",
+              "2",
+              "3",
+              "Different nodes"
+            ],
+            [
+              "2",
+              "3",
+              "3",
+              "Same node: cycle"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "slow == fast compares object identity, which is exactly the required repetition test.",
+          "The && guard short-circuits before fast.next is read when fast is null."
+        ],
+        "takeaway": "The proof is about relative movement within the cycle, not about values."
+      },
+      {
+        "id": "876",
+        "baseline": "Count nodes, then walk halfway: two linear passes and constant memory.",
+        "reasoning": [
+          "After t iterations, slow has moved t links and fast has moved 2t links. One pass therefore gives the halfway position.",
+          "Starting both at head and stopping when fast or fast.next is null returns the second middle for even lengths."
+        ],
+        "trace": {
+          "caption": "Middle of 1 → 2 → 3 → 4",
+          "headers": [
+            "Iteration",
+            "slow",
+            "fast"
+          ],
+          "rows": [
+            [
+              "Start",
+              "1",
+              "1"
+            ],
+            [
+              "1",
+              "2",
+              "3"
+            ],
+            [
+              "2",
+              "3",
+              "null; stop"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The return value is a node, not its value.",
+          "This midpoint routine assumes the input list has no cycle; otherwise the loop never reaches null."
+        ],
+        "takeaway": "The even-length convention is determined by the loop, not by a final adjustment."
+      }
+    ],
+    "optimization": "After a cycle meeting, resetting one cursor to head and moving both one step finds the cycle entrance. If the acyclic prefix has length μ and the cycle length is L, the meeting distance gives the modular relationship needed for the two cursors to meet at that entrance.",
+    "pitfalls": [
+      [
+        "Comparing values",
+        "Two different nodes may contain the same number."
+      ],
+      [
+        "Checking equality before the first move",
+        "Both cursors start equal by construction."
+      ],
+      [
+        "Using midpoint logic on cyclic input",
+        "Its null-based termination argument no longer applies."
+      ]
+    ],
+    "interview": "“The fast pointer gains one step per iteration inside a cycle, so it must catch the slow pointer modulo the cycle length. If it reaches null first, the list is acyclic.”",
+    "summary": "Different speeds reveal either a midpoint or repeated state; specify which conclusion the stopping condition supports."
+  },
+  "12": {
+    "intuition": [
+      "A stack stores unfinished obligations in the order they must be resolved. The most recently opened bracket must close first; the most recently produced expression values become the next operands.",
+      "Use a stack when the next operation needs the latest unresolved item. This is a structural argument about nesting or evaluation order, not just a reason to choose a container with push and pop."
+    ],
+    "steps": [
+      [
+        "Define one stack entry",
+        "It might be an expected closing bracket, a partial value, or a value paired with a running minimum."
+      ],
+      [
+        "Specify push and pop events",
+        "Describe which input creates unfinished work and which input resolves it."
+      ],
+      [
+        "Guard invalid operations",
+        "A required pop from an empty stack signals invalid input or a broken invariant."
+      ],
+      [
+        "Check the final state",
+        "Matching tasks require no outstanding obligations; expression evaluation requires the correct final value."
+      ]
+    ],
+    "patterns": [
+      [
+        "Nested matching",
+        "Store expected closing tokens and resolve the latest one first."
+      ],
+      [
+        "Postfix evaluation",
+        "Store completed operands; an operator replaces its operands with their result."
+      ],
+      [
+        "Augmented stack",
+        "Store a minimum with each depth so popping restores the previous minimum."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "20",
+        "baseline": "Repeatedly deleting matching adjacent pairs can take O(n²) and obscures the nesting rule.",
+        "reasoning": [
+          "When an opener arrives, push its expected closer. A closer is valid exactly when it equals the top outstanding obligation.",
+          "At the end, an empty stack means every opener was closed. Matching each encountered closer is insufficient if openers remain."
+        ],
+        "trace": {
+          "caption": "Bracket validation; stack shown bottom → top",
+          "headers": [
+            "Token",
+            "Expected-closer stack",
+            "Meaning"
+          ],
+          "rows": [
+            [
+              "(",
+              "[)]",
+              "Must eventually close )"
+            ],
+            [
+              "[",
+              "[), ]]",
+              "Must close ] before )"
+            ],
+            [
+              "]",
+              "[)]",
+              "Inner obligation satisfied"
+            ],
+            [
+              ")",
+              "[]",
+              "All obligations satisfied"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Pushing expected closers avoids a separate opener-to-closer comparison during popping.",
+          "The solution assumes input contains only the six bracket characters."
+        ],
+        "takeaway": "The stack records what must happen next to remain valid."
+      },
+      {
+        "id": "150",
+        "baseline": "Building an expression tree and evaluating it works, but an explicit tree is unnecessary for postfix order.",
+        "reasoning": [
+          "A number is already a completed expression. Push it. An operator consumes the latest two completed expressions and pushes one new result.",
+          "The first popped value is the right operand. Subtraction and division expose this order; addition and multiplication can conceal a bug."
+        ],
+        "trace": {
+          "caption": "Postfix expression [4,13,5,/,+]",
+          "headers": [
+            "Token",
+            "Action",
+            "Value stack"
+          ],
+          "rows": [
+            [
+              "4",
+              "Push 4",
+              "[4]"
+            ],
+            [
+              "13",
+              "Push 13",
+              "[4,13]"
+            ],
+            [
+              "5",
+              "Push 5",
+              "[4,13,5]"
+            ],
+            [
+              "/",
+              "13 / 5 = 2",
+              "[4,2]"
+            ],
+            [
+              "+",
+              "4 + 2 = 6",
+              "[6]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Java integer division truncates toward zero, matching this problem.",
+          "Pop right first, then left, and evaluate left operator right."
+        ],
+        "takeaway": "Name operands explicitly instead of writing an order-sensitive expression with two pops."
+      }
+    ],
+    "optimization": "ArrayDeque is a practical Java stack implementation. For Min Stack, pair every pushed value with the minimum at that depth, or maintain a second minimum stack with a consistent duplicate policy. O(1) minimum lookup requires preserving history across pops.",
+    "pitfalls": [
+      [
+        "Reversing operands",
+        "right − left is wrong even though addition tests may pass."
+      ],
+      [
+        "Accepting leftover openers",
+        "A nonempty final stack means incomplete matching."
+      ],
+      [
+        "Dropping duplicate minima",
+        "Popping one copy must not erase the minimum represented by another copy."
+      ]
+    ],
+    "interview": "“Each entry is unfinished work. Because the newest obligation must be resolved first, a stack matches the dependency order. Every item is pushed and popped at most once.”",
+    "summary": "A stack is a record of unresolved work whose resolution order is last-in, first-out."
+  },
+  "13": {
+    "intuition": [
+      "A monotonic stack keeps unresolved candidates in sorted value order. A new value can settle several earlier questions at once, such as “when is the next warmer day?”",
+      "The inner pop loop is the useful work, not evidence of quadratic time. Once a candidate is resolved or dominated, it leaves permanently. Charging each pop to its earlier push gives a linear total."
+    ],
+    "steps": [
+      [
+        "State the question per item",
+        "Decide whether you need the next greater, next smaller, or a boundary for a rectangle."
+      ],
+      [
+        "Choose what to store",
+        "Store indices when distance, position, or duplicate identity matters."
+      ],
+      [
+        "Define stack order and ties",
+        "Choose increasing or decreasing order and strict versus non-strict comparisons."
+      ],
+      [
+        "Resolve while the new item qualifies",
+        "Pop every candidate answered by the new value, then push the new unresolved item."
+      ]
+    ],
+    "patterns": [
+      [
+        "Next greater",
+        "A decreasing stack waits for a larger incoming value."
+      ],
+      [
+        "Next smaller",
+        "Reverse the inequality and maintain increasing candidates."
+      ],
+      [
+        "Span boundaries",
+        "A popped histogram bar uses its next smaller position and the remaining stack to determine its maximal width."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "739",
+        "baseline": "Scanning forward from every day for a warmer temperature costs O(n²) in a descending sequence.",
+        "reasoning": [
+          "Keep indices of days with no warmer day yet. Their temperatures are nonincreasing from bottom to top.",
+          "When a warmer day arrives, it is the first warmer day for each popped index: any earlier qualifying day would already have popped that index."
+        ],
+        "trace": {
+          "caption": "Temperatures [73,74,75,71,69,72,76,73]",
+          "headers": [
+            "Incoming index/value",
+            "Indices resolved",
+            "Unresolved indices"
+          ],
+          "rows": [
+            [
+              "0 / 73",
+              "None",
+              "[0]"
+            ],
+            [
+              "1 / 74",
+              "0 waits 1 day",
+              "[1]"
+            ],
+            [
+              "2 / 75",
+              "1 waits 1 day",
+              "[2]"
+            ],
+            [
+              "3 / 71; 4 / 69",
+              "None",
+              "[2,3,4]"
+            ],
+            [
+              "5 / 72",
+              "4 waits 1; 3 waits 2",
+              "[2,5]"
+            ],
+            [
+              "6 / 76",
+              "5 waits 1; 2 waits 4",
+              "[6]"
+            ],
+            [
+              "7 / 73",
+              "None",
+              "[6,7]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Use i − previous for the waiting time, not a difference of temperatures.",
+          "Unresolved entries keep the zero initialized in the answer array."
+        ],
+        "takeaway": "“Unresolved” gives each stack entry a reason to stay."
+      },
+      {
+        "id": "496",
+        "baseline": "For each query value, locate it and scan right again, repeating the same comparisons.",
+        "reasoning": [
+          "Preprocess nums2 once with a decreasing stack. When x arrives, it is the next greater value for every smaller stack top it removes.",
+          "The problem guarantees distinct values in nums2, so a map keyed by value is sufficient. With duplicates and position-specific answers, store indices instead."
+        ],
+        "trace": {
+          "caption": "Process nums2=[1,3,4,2], then query [4,1,2]",
+          "headers": [
+            "Incoming",
+            "Resolved mapping",
+            "Stack"
+          ],
+          "rows": [
+            [
+              "1",
+              "None",
+              "[1]"
+            ],
+            [
+              "3",
+              "1 → 3",
+              "[3]"
+            ],
+            [
+              "4",
+              "3 → 4",
+              "[4]"
+            ],
+            [
+              "2",
+              "None",
+              "[4,2]"
+            ],
+            [
+              "Queries",
+              "4 → -1, 1 → 3, 2 → -1",
+              "Unresolved values default to -1"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "getOrDefault supplies -1 for values with no greater successor.",
+          "The map separates preprocessing from answering many queries."
+        ],
+        "takeaway": "Exploit distinctness only when the problem explicitly guarantees it."
+      }
+    ],
+    "optimization": "For n inputs there are at most n pushes and n pops, yielding O(n) work despite nested loops. Circular next-greater tasks often scan the sequence twice while limiting which indices are initially pushed. Histogram tasks need a final flush or sentinel to resolve remaining bars.",
+    "pitfalls": [
+      [
+        "Using the wrong equality rule",
+        "Equal temperatures are not warmer; use a strict greater comparison."
+      ],
+      [
+        "Storing only values for distances",
+        "Distances require positions."
+      ],
+      [
+        "Forgetting unresolved entries",
+        "They need the problem’s no-answer value or a final boundary flush."
+      ]
+    ],
+    "interview": "“The stack contains unresolved candidates in monotone order. The new item resolves a suffix of them permanently, so the total number of removals is linear.”",
+    "summary": "Keep candidates until the first event that proves their answer, then remove them forever."
+  },
+  "14": {
+    "intuition": [
+      "A monotonic deque is a queue of candidates that can still become a window’s best value. It removes expired indices from the front and dominated candidates from the back.",
+      "If a newer value is at least as large as an older one, the older one can never be a future maximum while both are eligible: it is no larger and it expires sooner. That dominance argument is why removal is permanent."
+    ],
+    "steps": [
+      [
+        "Define eligibility",
+        "An index must remain inside the current window."
+      ],
+      [
+        "Expire from the front",
+        "Remove indices left behind by the moving window boundary."
+      ],
+      [
+        "Prune from the back",
+        "For a maximum, discard older values no greater than the new value."
+      ],
+      [
+        "Read the front",
+        "After updates, the front is the best eligible candidate."
+      ],
+      [
+        "Coordinate multiple deques if needed",
+        "A maximum and minimum deque together can enforce a range-spread constraint."
+      ]
+    ],
+    "patterns": [
+      [
+        "Fixed-window maximum",
+        "Use decreasing values and increasing indices."
+      ],
+      [
+        "Variable-window spread",
+        "Maintain both maximum and minimum while shrinking until their difference is allowed."
+      ],
+      [
+        "Prefix-sum candidates",
+        "For shortest sum-at-least-K with negatives, a deque orders prefix totals rather than raw array values."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "239",
+        "baseline": "Scanning k values for each window costs O(nk).",
+        "reasoning": [
+          "Indices increase from front to back, so expired entries are found at the front. Values decrease, so the maximum is also at the front.",
+          "Before appending a new index, remove smaller or equal older values from the back. A newer equal value is preferable because it survives longer."
+        ],
+        "trace": {
+          "caption": "Window maximum: [1,3,-1,-3,5], k=3",
+          "headers": [
+            "Incoming",
+            "Candidate indices after updates",
+            "Full-window maximum"
+          ],
+          "rows": [
+            [
+              "0: 1",
+              "[0]",
+              "Not full"
+            ],
+            [
+              "1: 3",
+              "[1]",
+              "Not full"
+            ],
+            [
+              "2: -1",
+              "[1,2]",
+              "3"
+            ],
+            [
+              "3: -3",
+              "[1,2,3]",
+              "3"
+            ],
+            [
+              "4: 5",
+              "[4]",
+              "5"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "An index <= i − k lies outside the current window.",
+          "Output starts at i = k − 1, after the first complete window exists."
+        ],
+        "takeaway": "Expiration and domination are different reasons to remove an index."
+      },
+      {
+        "id": "1438",
+        "baseline": "Checking every subarray’s maximum and minimum repeats work and can cost at least O(n²).",
+        "reasoning": [
+          "A window satisfies all pairwise difference limits exactly when max − min <= limit. Two monotonic deques provide those extremes.",
+          "If adding a value breaks the condition, advance left and expire its indices until the condition is restored. Removing values cannot increase the spread."
+        ],
+        "trace": {
+          "caption": "Longest valid range: [8,2,4,7], limit=4",
+          "headers": [
+            "Right value",
+            "Window before repair",
+            "Window after repair",
+            "Best"
+          ],
+          "rows": [
+            [
+              "8",
+              "[8]",
+              "[8]",
+              "1"
+            ],
+            [
+              "2",
+              "[8,2]",
+              "[2]",
+              "1"
+            ],
+            [
+              "4",
+              "[2,4]",
+              "[2,4]",
+              "2"
+            ],
+            [
+              "7",
+              "[2,4,7]",
+              "[4,7]",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Cast before subtracting minimum from maximum so a large spread cannot overflow.",
+          "Expire an index only from deque fronts that actually contain it. Dominated indices may already be absent."
+        ],
+        "takeaway": "A window can be summarized by extremes even when its condition mentions every pair."
+      }
+    ],
+    "optimization": "Each index enters and leaves each deque at most once. Fixed-window maximum uses O(k) auxiliary space; a variable window may retain O(n) candidates. A heap offers general priority selection but does not automatically remove stale entries or give the same linear bound.",
+    "pitfalls": [
+      [
+        "Storing no indices",
+        "Equal values cannot tell you which occurrence expired."
+      ],
+      [
+        "Removing from the wrong end",
+        "Expiration follows age; domination follows value."
+      ],
+      [
+        "Assuming contiguity alone permits a deque",
+        "You need a dominance proof showing removed candidates never become useful again."
+      ]
+    ],
+    "interview": "“A newer candidate with a better value dominates this older one because it also expires later. The front remains the best active candidate, and every index is processed only a constant number of times.”",
+    "summary": "Keep only candidates that are both eligible now and capable of winning later."
+  },
+  "15": {
+    "intuition": [
+      "Recursive tree code becomes easier when every call has a precise return contract. Ask what information a parent needs from one child, and define that before writing the recursion.",
+      "The value returned upward may differ from the final answer. A diameter can use two child branches through a node, but a path extended by the parent can use only one of those branches. Mixing these roles causes subtle mistakes."
+    ],
+    "steps": [
+      [
+        "Define the return value",
+        "For height, return the number of nodes on the longest downward path starting here."
+      ],
+      [
+        "Set the empty-tree base case",
+        "A null subtree has height zero, so a leaf naturally has height one."
+      ],
+      [
+        "Solve children under that contract",
+        "Treat recursive results as correct summaries, rather than tracing every call at once."
+      ],
+      [
+        "Combine and update",
+        "Compute the value returned to the parent and separately update any best answer that may pass through this node."
+      ]
+    ],
+    "patterns": [
+      [
+        "Postorder summary",
+        "Compute child results before combining height, balance, or subtree totals."
+      ],
+      [
+        "Ancestor information",
+        "Pass constraints or path state downward when children need context."
+      ],
+      [
+        "Return versus global best",
+        "A local path may join both children while the returned path can extend only one side."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "104",
+        "baseline": "Recomputing each node’s depth by repeatedly finding paths from the root duplicates traversal work.",
+        "reasoning": [
+          "The deepest root-to-leaf path must enter either the left or right subtree. Its length is one plus the larger child height.",
+          "Inductively, if each child returns its correct height, that formula returns the correct height here. Null returns zero to close the recursion."
+        ],
+        "trace": {
+          "caption": "Tree 3 with children 9 and 20; 20 has children 15 and 7",
+          "headers": [
+            "Node",
+            "Child heights",
+            "Returned height"
+          ],
+          "rows": [
+            [
+              "9",
+              "0, 0",
+              "1"
+            ],
+            [
+              "15 and 7",
+              "0, 0 each",
+              "1 each"
+            ],
+            [
+              "20",
+              "1, 1",
+              "2"
+            ],
+            [
+              "3",
+              "1, 2",
+              "3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Each node is visited once; the recursion does not rescan subtrees.",
+          "Space is the maximum active call depth h, not the total n calls made over time."
+        ],
+        "takeaway": "A one-sentence return contract can serve as the induction hypothesis."
+      },
+      {
+        "id": "543",
+        "baseline": "Computing subtree heights from scratch at every possible path center can take O(n²) on a chain.",
+        "reasoning": [
+          "At a node with child heights left and right, the longest path passing through it has left + right edges.",
+          "Return only 1 + max(left,right) upward. Returning both branches would create a fork when a parent tries to extend that path."
+        ],
+        "trace": {
+          "caption": "Diameter of [1,2,3,4,5] in level order",
+          "headers": [
+            "Node",
+            "Child heights",
+            "Through-node edges",
+            "Returned height"
+          ],
+          "rows": [
+            [
+              "4 and 5",
+              "0,0",
+              "0",
+              "1"
+            ],
+            [
+              "2",
+              "1,1",
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "0,0",
+              "0",
+              "1"
+            ],
+            [
+              "1",
+              "2,1",
+              "3",
+              "3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The diameter field stores the best path anywhere, including paths that do not cross the root.",
+          "Reset diameter for each public call so reusing the Solution object is safe."
+        ],
+        "takeaway": "The parent needs an extendable summary; the overall answer may combine more information."
+      }
+    ],
+    "optimization": "Both examples are O(n) time and O(h) stack space. Balanced trees have logarithmic height, but skewed trees can have linear height and overflow Java’s recursion stack. An explicit stack can simulate postorder when depth is unbounded.",
+    "pitfalls": [
+      [
+        "Counting nodes when edges are requested",
+        "Diameter uses left + right, while height returns one extra node."
+      ],
+      [
+        "Returning a forked path",
+        "A parent cannot extend two child branches as one simple path."
+      ],
+      [
+        "Assuming all trees are balanced",
+        "Worst-case stack depth is n."
+      ]
+    ],
+    "interview": "“My helper returns the subtree height. After obtaining both child heights, I update the best path through this node and return only the longer downward branch for its parent.”",
+    "summary": "Define what flows upward, and separate it from what is recorded as the final answer."
+  },
+  "16": {
+    "intuition": [
+      "Breadth-first traversal processes a tree by distance from the root. A queue holds discovered nodes waiting for their turn, with earlier levels ahead of later ones.",
+      "To produce separate levels, capture the queue size before processing a layer. Children added during that layer belong to the next one; using a changing queue size would blur those boundaries."
+    ],
+    "steps": [
+      [
+        "Handle the empty root",
+        "Return the empty result before trying to enqueue null."
+      ],
+      [
+        "Queue the initial level",
+        "Start with the root as the only depth-zero node."
+      ],
+      [
+        "Freeze the layer size",
+        "Process exactly the number of nodes present at the start of the layer."
+      ],
+      [
+        "Collect and expand",
+        "Record the information needed from this layer, then enqueue nonnull children in a consistent order."
+      ]
+    ],
+    "patterns": [
+      [
+        "Level grouping",
+        "Collect every value from a layer into a separate list."
+      ],
+      [
+        "Layer representative",
+        "Take the first or last node according to enqueue order."
+      ],
+      [
+        "First leaf distance",
+        "For minimum depth, the first leaf encountered by BFS gives the shortest root-to-leaf path."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "102",
+        "baseline": "A DFS can collect nodes by depth, but must explicitly carry depth and manage the corresponding output lists.",
+        "reasoning": [
+          "The queue already encodes the depth ordering. Capture size, remove exactly that many nodes, and place their values in one result list.",
+          "Enqueue left before right so the next layer appears in the usual left-to-right order."
+        ],
+        "trace": {
+          "caption": "Level order of [3,9,20,null,null,15,7]",
+          "headers": [
+            "Layer",
+            "Queue at start",
+            "Collected",
+            "Next queue"
+          ],
+          "rows": [
+            [
+              "0",
+              "[3]",
+              "[3]",
+              "[9,20]"
+            ],
+            [
+              "1",
+              "[9,20]",
+              "[9,20]",
+              "[15,7]"
+            ],
+            [
+              "2",
+              "[15,7]",
+              "[15,7]",
+              "[]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "size is a snapshot, not queue.size() reevaluated on every for-loop condition.",
+          "The output contains all n values, while the queue needs space proportional to maximum width."
+        ],
+        "takeaway": "A queue-size snapshot separates the current frontier from the next."
+      },
+      {
+        "id": "199",
+        "baseline": "Rendering coordinates or comparing every node’s position is unnecessary for the right side view.",
+        "reasoning": [
+          "With children queued left before right, the last node removed from a level is its rightmost visible node.",
+          "A deeper visible node need not lie on a chain of right children. A left subtree can extend below the right subtree and become visible there."
+        ],
+        "trace": {
+          "caption": "Right view of [1,2,3,null,5,null,4]",
+          "headers": [
+            "Layer values",
+            "Last value",
+            "View so far"
+          ],
+          "rows": [
+            [
+              "[1]",
+              "1",
+              "[1]"
+            ],
+            [
+              "[2,3]",
+              "3",
+              "[1,3]"
+            ],
+            [
+              "[5,4]",
+              "4",
+              "[1,3,4]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "i == size − 1 selects the last node in this fixed layer.",
+          "Changing child enqueue order requires changing which position is selected."
+        ],
+        "takeaway": "Visibility follows layer order, not simply repeated right-child selection."
+      }
+    ],
+    "optimization": "BFS uses O(w) auxiliary memory for maximum width w; DFS uses O(h) active stack depth. Choose based on the needed information and possible tree shape. An early-return minimum-depth BFS can avoid exploring deeper layers after finding a leaf.",
+    "pitfalls": [
+      [
+        "Using the growing queue size",
+        "New children may be processed as if they were on the current level."
+      ],
+      [
+        "Enqueuing null into ArrayDeque",
+        "It does not allow null elements; guard each child."
+      ],
+      [
+        "Calling every missing child a leaf",
+        "A leaf has neither child; one missing child does not terminate a root-to-leaf path."
+      ]
+    ],
+    "interview": "“The queue starts each iteration with exactly one level. I will process a fixed number of nodes, collect the required information, and leave all their children for the next iteration.”",
+    "summary": "Treat a level as a frozen frontier, then build the next frontier behind it."
+  },
+  "17": {
+    "intuition": [
+      "A binary search tree imposes constraints on entire subtrees, not just direct children. Every node in a left subtree must be smaller than its ancestor, and every node in a right subtree must be larger under the strict convention used here.",
+      "That global order provides two useful views: each descent narrows an allowed value interval, and inorder traversal emits values in sorted order. Pick the view that matches the question."
+    ],
+    "steps": [
+      [
+        "Clarify the duplicate rule",
+        "These problems use strict ordering; duplicates violate it."
+      ],
+      [
+        "Choose bounds or inorder",
+        "Bounds prove validity; inorder supports ordered enumeration and rank."
+      ],
+      [
+        "Carry inherited constraints",
+        "A child must obey all ancestor restrictions, not just compare with its parent."
+      ],
+      [
+        "Stop when the requested information is known",
+        "A rank query can finish after visiting k inorder nodes, though reaching them may require descending h levels."
+      ]
+    ],
+    "patterns": [
+      [
+        "Validate with bounds",
+        "Each node belongs to an open interval inherited from ancestors."
+      ],
+      [
+        "Rank by inorder",
+        "Traverse left, node, right and count visited nodes."
+      ],
+      [
+        "Ordered branching",
+        "For BST lowest common ancestor, descend while both targets lie strictly on the same side."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "98",
+        "baseline": "Checking only node.left < node < node.right misses violations deeper inside a subtree.",
+        "reasoning": [
+          "Pass an exclusive lower and upper bound. A left descent replaces the upper bound with the current value; a right descent replaces the lower bound.",
+          "Use long bounds around int node values so the smallest and largest int remain legal values."
+        ],
+        "trace": {
+          "caption": "Invalid BST [5,1,4,null,null,3,6]",
+          "headers": [
+            "Node",
+            "Allowed interval",
+            "Outcome"
+          ],
+          "rows": [
+            [
+              "5",
+              "(-∞,+∞)",
+              "Valid root"
+            ],
+            [
+              "1",
+              "(-∞,5)",
+              "Valid left subtree"
+            ],
+            [
+              "4",
+              "(5,+∞)",
+              "Fails: right subtree must exceed 5"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "<= low and >= high reject duplicates as well as out-of-range nodes.",
+          "Null subtrees are valid; they contain no counterexample to the constraints."
+        ],
+        "takeaway": "Inherited bounds express all ancestor requirements in constant-size state."
+      },
+      {
+        "id": "230",
+        "baseline": "Collecting and sorting all tree values discards BST ordering and always visits every node.",
+        "reasoning": [
+          "Simulate inorder traversal using a stack. Descend left to reach the smallest unvisited node, then pop and count it.",
+          "After visiting a node, its right subtree contains the next larger candidates. Stop when the kth visit occurs."
+        ],
+        "trace": {
+          "caption": "BST [3,1,4,null,2], k=2",
+          "headers": [
+            "Action",
+            "Stack bottom → top",
+            "Visits"
+          ],
+          "rows": [
+            [
+              "Descend left",
+              "[3,1]",
+              "None"
+            ],
+            [
+              "Pop 1; enter right child 2",
+              "[3]",
+              "1st: value 1"
+            ],
+            [
+              "Push and pop 2",
+              "[3]",
+              "2nd: return 2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The inner loop saves ancestors that must be revisited after their left subtree.",
+          "This example uses k=2 to show the transition from one node into its right subtree."
+        ],
+        "takeaway": "Inorder traversal is an ordered iterator, so a rank query can stop early."
+      }
+    ],
+    "optimization": "A BST is not necessarily balanced: h can be n. Repeated rank queries can benefit from stored subtree sizes, but those sizes must be maintained after updates. For a single query, an inorder stack avoids changing the tree.",
+    "pitfalls": [
+      [
+        "Checking only parent-child pairs",
+        "A descendant can violate a more distant ancestor."
+      ],
+      [
+        "Using int extrema as exclusive sentinels",
+        "Legal endpoint int values would be rejected."
+      ],
+      [
+        "Claiming O(log n) for every BST",
+        "That bound needs a height guarantee such as balancing."
+      ]
+    ],
+    "interview": "“Every recursive call receives the range allowed by its ancestors. For a rank query, inorder provides sorted order, so I can count visits without sorting the values again.”",
+    "summary": "Use the ordering of whole subtrees, not just the shape of the tree."
+  },
+  "18": {
+    "intuition": [
+      "Graph traversal explores connections while preventing repeated work. A grid is a graph whose vertices are cells and whose edges are the allowed moves; row and column coordinates replace an explicit adjacency list.",
+      "Choose the traversal by the required result. DFS or BFS can mark a connected component. BFS also supplies shortest distances when every edge has equal cost, and multiple starting points can share one initial frontier."
+    ],
+    "steps": [
+      [
+        "Define vertices and edges",
+        "State whether movement is four-directional, diagonal, directed, or undirected."
+      ],
+      [
+        "Mark on discovery",
+        "Claim a node before recursively entering it or enqueuing it, so other paths do not schedule it again."
+      ],
+      [
+        "Choose the frontier",
+        "A stack explores deeply; a queue explores by distance."
+      ],
+      [
+        "Restart or seed as needed",
+        "Restart from every unvisited node to count components, or enqueue all initial sources to model simultaneous spread."
+      ]
+    ],
+    "patterns": [
+      [
+        "Component counting",
+        "Every new traversal from unvisited land discovers one whole island."
+      ],
+      [
+        "Shortest unweighted path",
+        "BFS layers correspond to numbers of edges."
+      ],
+      [
+        "Multiple-source BFS",
+        "All initial sources have distance zero and expand together."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "200",
+        "baseline": "Starting a fresh search from every land cell without shared visited state recounts the same island.",
+        "reasoning": [
+          "Scan all cells. When unvisited land appears, increment the count once and flood its entire component.",
+          "Changing visited land to water prevents later scans from recounting it. This saves a separate visited array but mutates the input."
+        ],
+        "trace": {
+          "caption": "Islands in [110,010,001], four-directional adjacency",
+          "headers": [
+            "Scan position",
+            "Action",
+            "Island count"
+          ],
+          "rows": [
+            [
+              "(0,0)",
+              "Flood (0,0), (0,1), (1,1)",
+              "1"
+            ],
+            [
+              "(0,1), (1,1)",
+              "Already changed to water",
+              "1"
+            ],
+            [
+              "(2,2)",
+              "Start a new flood",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The flood guard rejects out-of-bounds coordinates and non-land before accessing neighbors.",
+          "Diagonal contact alone does not join (1,1) and (2,2) in this problem."
+        ],
+        "takeaway": "One increment belongs to one traversal start, not to every discovered cell."
+      },
+      {
+        "id": "994",
+        "baseline": "Simulating each rotten source separately repeats propagation and requires reconciling arrival times.",
+        "reasoning": [
+          "Enqueue all initially rotten cells at minute zero. Each BFS layer is the set of cells that can infect neighbors during the next minute.",
+          "Mark a fresh cell rotten as soon as it is enqueued and decrement fresh once. If the frontier empties while fresh remains, those cells are unreachable."
+        ],
+        "trace": {
+          "caption": "Rotting [[2,1,1],[1,1,0],[0,1,1]]",
+          "headers": [
+            "Minute",
+            "Newly rotten cells",
+            "Fresh remaining"
+          ],
+          "rows": [
+            [
+              "0",
+              "(0,0) initially",
+              "6"
+            ],
+            [
+              "1",
+              "(1,0), (0,1)",
+              "4"
+            ],
+            [
+              "2",
+              "(1,1), (0,2)",
+              "2"
+            ],
+            [
+              "3",
+              "(2,1)",
+              "1"
+            ],
+            [
+              "4",
+              "(2,2)",
+              "0"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The fresh > 0 loop guard prevents adding an extra minute after the last infection.",
+          "Multiple starting sources are all inserted before any propagation begins."
+        ],
+        "takeaway": "Simultaneous processes often become a single BFS with multiple sources."
+      }
+    ],
+    "optimization": "Adjacency-list traversal costs O(V+E); a four-neighbor grid has O(RC) edges and costs O(RC). Matrix input may require O(V²) scanning. Recursive flood fill can use O(RC) call depth in the worst case, so use an explicit stack or queue for large grids.",
+    "pitfalls": [
+      [
+        "Marking only when dequeued",
+        "The same node may be enqueued through several parents."
+      ],
+      [
+        "Ignoring input mutation",
+        "Flooding by overwriting cells destroys the original grid."
+      ],
+      [
+        "Using DFS depth as shortest distance",
+        "The first DFS path need not be the shortest one."
+      ]
+    ],
+    "interview": "“I will mark each cell when discovered, so it enters the frontier once. For spread time I need BFS layers, seeded with every source, and a count of cells that remain unreachable.”",
+    "summary": "The visited rule controls repeated work; the frontier order controls what discovery tells you."
+  },
+  "19": {
+    "intuition": [
+      "Topological order schedules directed dependencies. A node becomes available when every prerequisite has been processed. Its indegree is the number of incoming dependency edges still waiting to be removed.",
+      "A directed cycle has no first available node within the cycle. Kahn’s algorithm repeatedly processes zero-indegree nodes; if any nodes remain afterward, some dependency cycle prevents completion."
+    ],
+    "steps": [
+      [
+        "Orient each edge",
+        "For “a requires b,” draw b → a so processing b can unlock a."
+      ],
+      [
+        "Count all indegrees",
+        "Include isolated vertices even when they appear in no edge."
+      ],
+      [
+        "Queue every available node",
+        "All indegree-zero nodes can be processed now; several choices may be valid."
+      ],
+      [
+        "Remove outgoing dependencies",
+        "Decrement each neighbor’s indegree once per processed edge and enqueue it when the count reaches zero."
+      ],
+      [
+        "Check completeness",
+        "An order is valid only if it includes every vertex."
+      ]
+    ],
+    "patterns": [
+      [
+        "Feasibility",
+        "Count processed vertices to decide whether all tasks can finish."
+      ],
+      [
+        "Construct an order",
+        "Record each removed vertex in sequence."
+      ],
+      [
+        "Reverse dependencies",
+        "For eventual-safe states, reverse edges and remove nodes whose original outgoing choices are all safe."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "207",
+        "baseline": "Trying every possible course ordering can require factorial work.",
+        "reasoning": [
+          "Indegree counts unmet prerequisites. A zero count makes a course safe to complete immediately.",
+          "After removing every currently available course, either all courses are complete or the remaining subgraph has no zero-indegree vertex, implying a directed cycle."
+        ],
+        "trace": {
+          "caption": "Courses 0 and 1",
+          "headers": [
+            "Prerequisites",
+            "Initial indegrees",
+            "Processing",
+            "Result"
+          ],
+          "rows": [
+            [
+              "[[1,0]]",
+              "[0,1]",
+              "0 unlocks 1; process both",
+              "true"
+            ],
+            [
+              "[[1,0],[0,1]]",
+              "[1,1]",
+              "No initial available course",
+              "false"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "graph.get(edge[1]).add(edge[0]) encodes prerequisite → dependent.",
+          "A processed count smaller than numCourses catches cycles even when another component was completed successfully."
+        ],
+        "takeaway": "Processing an acyclic component is not enough; every course must be included."
+      },
+      {
+        "id": "210",
+        "baseline": "Checking permutations for prerequisite violations does not exploit local availability.",
+        "reasoning": [
+          "Use the same removal process but append each available course to an output array.",
+          "When two courses become available together, either order can be correct. The result needs to satisfy dependencies, not match one unique sequence."
+        ],
+        "trace": {
+          "caption": "4 courses: 0→1, 0→2, 1→3, 2→3",
+          "headers": [
+            "Removed",
+            "Indegrees after removal",
+            "Available queue",
+            "Output"
+          ],
+          "rows": [
+            [
+              "0",
+              "[0,0,0,2]",
+              "[1,2]",
+              "[0]"
+            ],
+            [
+              "1",
+              "[0,0,0,1]",
+              "[2]",
+              "[0,1]"
+            ],
+            [
+              "2",
+              "[0,0,0,0]",
+              "[3]",
+              "[0,1,2]"
+            ],
+            [
+              "3",
+              "[0,0,0,0]",
+              "[]",
+              "[0,1,2,3]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Only enqueue a neighbor when its indegree becomes exactly zero.",
+          "If the output has fewer than numCourses entries, return an empty array rather than a partial schedule."
+        ],
+        "takeaway": "An availability queue produces one valid order, not necessarily the only one."
+      }
+    ],
+    "optimization": "Every vertex and edge is handled once, for O(V+E). A DFS alternative uses unvisited, visiting, and finished states; an edge to a visiting node proves a cycle. A priority queue can choose the smallest available ID when a specific tie-breaking order is required, at additional cost.",
+    "pitfalls": [
+      [
+        "Reversing the input pair",
+        "The produced order may violate every intended prerequisite."
+      ],
+      [
+        "Using ordinary visited flags to detect directed cycles",
+        "Revisiting a finished node is harmless; revisiting an active recursion node is not."
+      ],
+      [
+        "Forgetting isolated vertices",
+        "They are valid zero-indegree tasks and belong in the output."
+      ]
+    ],
+    "interview": "“Indegree will represent remaining prerequisites. I will repeatedly complete available tasks and remove their outgoing dependencies. A short output proves some tasks are trapped behind a cycle.”",
+    "summary": "A topological order is a sequence of tasks that become available as dependencies disappear."
+  },
+  "20": {
+    "intuition": [
+      "Union-find maintains groups as connections are added. Each group has a representative root, and two elements are connected exactly when their representatives match.",
+      "It stores connectivity, not the actual route connecting two nodes. That distinction makes it compact and fast for merges, but unsuitable by itself for path reconstruction, directed reachability, or ordinary edge deletion."
+    ],
+    "steps": [
+      [
+        "Initialize singleton groups",
+        "Every element starts as its own parent with size one."
+      ],
+      [
+        "Find representatives",
+        "Follow parent links to roots; shorten the path along the way."
+      ],
+      [
+        "Merge roots only",
+        "If roots differ, attach the smaller tree beneath the larger and update its size."
+      ],
+      [
+        "Interpret repeated connections",
+        "Equal roots mean the new edge connects already-connected vertices; it does not reduce the number of components."
+      ]
+    ],
+    "patterns": [
+      [
+        "Cycle in an undirected graph",
+        "An edge whose endpoints are already connected closes a cycle."
+      ],
+      [
+        "Component counting",
+        "Start at n groups and subtract one for every successful union."
+      ],
+      [
+        "Connectivity over time",
+        "Answer queries as edges are added, without rerunning a full traversal each time."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "684",
+        "baseline": "For each incoming edge, run a traversal to see whether its endpoints are already connected; repeated searches can become quadratic.",
+        "reasoning": [
+          "Maintain the components formed by earlier edges. If the next edge joins two different roots, merge them.",
+          "If the roots already match, an earlier path connects the endpoints. The new edge plus that path forms a cycle."
+        ],
+        "trace": {
+          "caption": "Edges [[1,2],[1,3],[2,3]]",
+          "headers": [
+            "Edge",
+            "Before union",
+            "Outcome"
+          ],
+          "rows": [
+            [
+              "1–2",
+              "{1}, {2}, {3}",
+              "Merge: {1,2}, {3}"
+            ],
+            [
+              "1–3",
+              "{1,2}, {3}",
+              "Merge: {1,2,3}"
+            ],
+            [
+              "2–3",
+              "Same component",
+              "Return [2,3]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "union returns false precisely when no merge occurs.",
+          "There are edges.length nodes with labels starting at 1 in this problem, so the arrays include one extra slot."
+        ],
+        "takeaway": "A failed merge can be the information the problem asks for."
+      },
+      {
+        "id": "547",
+        "baseline": "A graph traversal is already a good alternative; DSU offers a different way to accumulate the same connectivity from matrix entries.",
+        "reasoning": [
+          "Begin with one component per city. For each connection above the matrix diagonal, attempt a union.",
+          "Only a successful union reduces the count. A redundant connection within one province must not decrement it again."
+        ],
+        "trace": {
+          "caption": "Matrix [[1,1,0],[1,1,0],[0,0,1]]",
+          "headers": [
+            "Pair",
+            "Connection?",
+            "Components"
+          ],
+          "rows": [
+            [
+              "Initial",
+              "—",
+              "3"
+            ],
+            [
+              "0,1",
+              "Yes; merge succeeds",
+              "2"
+            ],
+            [
+              "0,2",
+              "No",
+              "2"
+            ],
+            [
+              "1,2",
+              "No",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "j starts at i + 1 because the matrix is symmetric and self-connections add no information.",
+          "The matrix still takes quadratic time to inspect even though DSU operations are very cheap."
+        ],
+        "takeaway": "Choose a method based on input representation as well as abstract graph size."
+      }
+    ],
+    "optimization": "Path compression plus union by size gives O(α(n)) amortized time per operation, where α grows extremely slowly. Include O(n) initialization and any input scan. Ordinary DSU cannot split components after an edge deletion; that needs a different or more specialized technique.",
+    "pitfalls": [
+      [
+        "Linking arbitrary nodes rather than roots",
+        "You can corrupt component structure or invalidate size accounting."
+      ],
+      [
+        "Reducing count on every edge",
+        "Only a successful merge changes the number of components."
+      ],
+      [
+        "Using DSU for directed dependencies",
+        "Mutual group membership does not capture directed reachability or ordering."
+      ]
+    ],
+    "interview": "“I only need to know which vertices are connected, so I will maintain representative roots. Each successful union merges two components; a repeated connection can reveal an undirected cycle.”",
+    "summary": "Remember which group each node belongs to, not how the graph reaches it."
+  },
+  "21": {
+    "intuition": [
+      "BFS finalizes nodes in edge-count order. When edges have unequal nonnegative costs, a priority queue instead selects the smallest tentative distance. This is Dijkstra’s central change: expand the best known unfinished path first.",
+      "A tentative distance is a candidate, not a promise. A node can be discovered through an expensive route and improved later. It becomes safe to expand when its current best entry is the smallest one removed from the heap."
+    ],
+    "steps": [
+      [
+        "Define the path cost",
+        "For ordinary shortest paths, add edge weights. For bottleneck paths, take the maximum edge so far."
+      ],
+      [
+        "Initialize tentative labels",
+        "Set the source to zero and all other distances to infinity."
+      ],
+      [
+        "Extract the current best",
+        "Ignore heap entries whose stored distance no longer matches the best known label."
+      ],
+      [
+        "Relax outgoing edges",
+        "If extending the current path improves a neighbor, store the improvement and add a new heap entry."
+      ],
+      [
+        "Read the requested result",
+        "Return a target distance, the largest reachable distance, or failure if required nodes remain unreachable."
+      ]
+    ],
+    "patterns": [
+      [
+        "Additive nonnegative paths",
+        "candidate = distance[u] + edgeWeight."
+      ],
+      [
+        "Minimum bottleneck",
+        "candidate = max(effort[u], edgeDifference); extension cannot improve an already accumulated bottleneck."
+      ],
+      [
+        "Maximum probability",
+        "Use the best probability first; multiplying by probabilities in [0,1] cannot improve a path as it extends."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "743",
+        "baseline": "Repeatedly relaxing every edge, as in Bellman–Ford, can take O(VE); nonnegative weights permit a more selective order.",
+        "reasoning": [
+          "The heap gives the smallest current distance. A path through any farther unsettled node cannot become cheaper by adding nonnegative edges.",
+          "Relax each outgoing edge, allowing later improvements. Once all work finishes, the last arrival time is the maximum shortest distance from the source."
+        ],
+        "trace": {
+          "caption": "Edges 2→1 (1), 2→3 (1), 3→4 (1); source 2",
+          "headers": [
+            "Extract",
+            "New or improved labels",
+            "Known arrivals"
+          ],
+          "rows": [
+            [
+              "2 at 0",
+              "1=1, 3=1",
+              "2:0"
+            ],
+            [
+              "1 at 1",
+              "None",
+              "1:1, 2:0"
+            ],
+            [
+              "3 at 1",
+              "4=2",
+              "1:1, 2:0, 3:1"
+            ],
+            [
+              "4 at 2",
+              "None",
+              "Maximum = 2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Heap ties may process nodes 1 and 3 in either order without changing the result.",
+          "The stale-entry check avoids re-expanding a node using an outdated, more expensive distance."
+        ],
+        "takeaway": "Discovery is provisional; the best current extraction supplies the greedy guarantee."
+      },
+      {
+        "id": "1631",
+        "baseline": "Enumerating all simple grid paths is exponential and compares many paths with the same endpoint.",
+        "reasoning": [
+          "The cost of a path is its largest height jump, not the sum of jumps. Extending a path updates its cost with max.",
+          "For a fixed endpoint, a smaller bottleneck is always at least as useful for every future extension. That dominance property makes one best label per cell sufficient."
+        ],
+        "trace": {
+          "caption": "One optimal path through [[1,2,2],[3,8,2],[5,3,5]]",
+          "headers": [
+            "Move",
+            "Height difference",
+            "Path effort so far"
+          ],
+          "rows": [
+            [
+              "(0,0) → (1,0)",
+              "|1−3| = 2",
+              "2"
+            ],
+            [
+              "(1,0) → (2,0)",
+              "|3−5| = 2",
+              "2"
+            ],
+            [
+              "(2,0) → (2,1)",
+              "|5−3| = 2",
+              "2"
+            ],
+            [
+              "(2,1) → (2,2)",
+              "|3−5| = 2",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The table traces an optimal path, not every heap extraction.",
+          "Return when the destination is removed with its current best effort; merely inserting it is too early."
+        ],
+        "takeaway": "The heap strategy can survive a changed path metric when its monotonicity proof survives too."
+      }
+    ],
+    "optimization": "Lazy duplicate entries avoid needing a decrease-key operation. They use up to O(E) heap entries, giving O(V + E log(E+1)) time for the additive implementation. For equal-cost edges use BFS; negative edges invalidate the ordinary Dijkstra proof.",
+    "pitfalls": [
+      [
+        "Marking final on insertion",
+        "A better path may arrive later."
+      ],
+      [
+        "Using sum for a bottleneck objective",
+        "That optimizes a different quantity."
+      ],
+      [
+        "Ignoring unreachable nodes",
+        "An infinity label must produce the specified failure result, not overflow an output cast."
+      ]
+    ],
+    "interview": "“The path cost cannot decrease when extended, so the smallest tentative label is safe to expand. I will relax neighbors and discard stale heap entries rather than finalizing a node when first discovered.”",
+    "summary": "A best-first traversal needs a proof that an unfinished route cannot undercut the current best extraction."
+  },
+  "22": {
+    "intuition": [
+      "A heap keeps one extreme cheap to access without fully sorting all elements. The root is the best or worst item under your comparator; the remaining array is only partially ordered.",
+      "Choose what the root should mean before choosing min-heap or max-heap. Keeping the k largest items often needs a min-heap, because the smallest retained item is the one you want to evict."
+    ],
+    "steps": [
+      [
+        "Define the candidate set",
+        "Decide which items must compete right now: retained winners, list frontiers, or one half of a stream."
+      ],
+      [
+        "Choose the root’s role",
+        "It may be the next output item or the weakest item worth retaining."
+      ],
+      [
+        "Update and rebalance",
+        "Insert the incoming candidate, then remove or move an item to restore the invariant."
+      ],
+      [
+        "Analyze heap size",
+        "The logarithmic factor depends on the number of active heap entries, not automatically the total input size."
+      ]
+    ],
+    "patterns": [
+      [
+        "Top K",
+        "Keep at most k winners with their weakest at the root."
+      ],
+      [
+        "Merge sorted sources",
+        "Keep one head from each unfinished source; after outputting it, add its successor."
+      ],
+      [
+        "Streaming median",
+        "Balance a max-heap of the lower half and min-heap of the upper half."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "347",
+        "baseline": "Counting frequencies then fully sorting all unique values costs O(n + u log u) expected time.",
+        "reasoning": [
+          "First count each value’s frequency. Keep a min-heap ordered by frequency and remove its smallest member whenever size exceeds k.",
+          "After each insertion, every discarded value is no more frequent than the retained candidates at that moment. The final heap contains k top-frequency values."
+        ],
+        "trace": {
+          "caption": "Frequencies for [1,1,1,2,2,3], k=2; illustrative key order 1,2,3",
+          "headers": [
+            "Consider",
+            "Retained value:frequency pairs",
+            "Action"
+          ],
+          "rows": [
+            [
+              "1",
+              "{1:3}",
+              "Keep"
+            ],
+            [
+              "2",
+              "{2:2, 1:3}",
+              "Keep"
+            ],
+            [
+              "3",
+              "{3:1, 2:2, 1:3}",
+              "Evict 3; retain 1 and 2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "HashMap iteration order may differ; correctness does not depend on the illustrative order.",
+          "Frequencies are computed before heap insertion, so comparator priorities stay stable while values are inside the heap."
+        ],
+        "takeaway": "For Top K, put the weakest retained candidate at the root."
+      },
+      {
+        "id": "23",
+        "baseline": "Scanning every list head to choose each next node costs O(Nk).",
+        "reasoning": [
+          "Only the current head of each sorted list can be its next output candidate. Put these heads in a min-heap.",
+          "Remove the smallest head, append that node, and add its successor. The heap again represents exactly the next candidate from each active list."
+        ],
+        "trace": {
+          "caption": "Merge [1→4→5, 1→3→4, 2→6]",
+          "headers": [
+            "Output step",
+            "Value removed",
+            "Successor inserted"
+          ],
+          "rows": [
+            [
+              "1",
+              "1 from first list",
+              "4"
+            ],
+            [
+              "2",
+              "1 from second list",
+              "3"
+            ],
+            [
+              "3",
+              "2 from third list",
+              "6"
+            ],
+            [
+              "4",
+              "3 from second list",
+              "4"
+            ],
+            [
+              "Remaining",
+              "4,4,5,6 in order",
+              "As each source advances"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The heap holds at most k nodes even though the result has N nodes.",
+          "Input nodes are relinked; the result is not a separate copy. Equal-value nodes may be emitted in either source order."
+        ],
+        "takeaway": "Sorted sources let you represent many unseen items with one frontier each."
+      }
+    ],
+    "optimization": "Frequency buckets can solve Top K in expected O(n) time when counts lie between 1 and n. Pairwise merging can match O(N log k) for sorted lists. A heap iterator is not sorted; repeatedly poll when sorted extraction is required.",
+    "pitfalls": [
+      [
+        "Choosing the wrong root",
+        "A max-heap of all values does not provide the same bounded-memory Top K approach."
+      ],
+      [
+        "Changing priorities in place",
+        "Java PriorityQueue does not automatically reorder when a stored object’s comparator fields change."
+      ],
+      [
+        "Assuming iteration is sorted",
+        "Only the root and repeated removals have the promised ordering."
+      ]
+    ],
+    "interview": "“I only need repeated access to one extreme. I will keep this bounded candidate set in the heap, define what its root means, and count O(log k) work for each update.”",
+    "summary": "Keep just enough candidates to identify the next winner or the next item to evict."
+  },
+  "23": {
+    "intuition": [
+      "Backtracking explores a tree of partial decisions. At each level, choose a legal next action, explore everything that follows, then undo the action so a sibling branch starts from the same state.",
+      "The question determines whether order matters. A subset can be built using increasing input indices; a permutation must reconsider all unused positions because different orders are different answers."
+    ],
+    "steps": [
+      [
+        "Define one recursive state",
+        "Describe the chosen path and which choices remain legal."
+      ],
+      [
+        "Decide when to record",
+        "Every path is a subset, while only full-length paths are complete permutations."
+      ],
+      [
+        "Enumerate legal choices",
+        "Use a start index, a used array, or problem-specific constraints."
+      ],
+      [
+        "Choose, recurse, undo",
+        "Restore every mutable field changed for the branch."
+      ],
+      [
+        "Copy saved answers",
+        "The working path is reused; a stored answer needs independent contents."
+      ]
+    ],
+    "patterns": [
+      [
+        "Subsets and combinations",
+        "Increasing indices avoid generating the same selection in different orders."
+      ],
+      [
+        "Permutations",
+        "Track used positions and allow every unused value at each depth."
+      ],
+      [
+        "Constraint search",
+        "Prune impossible partial choices early, such as revisiting a cell in one Word Search path."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "78",
+        "baseline": "A bitmask can enumerate all subsets; recursive construction offers a more direct way to extend partial choices and later add constraints.",
+        "reasoning": [
+          "Record the current path at every call, including the empty path. Then choose each possible next index at or after start.",
+          "Recurse with i + 1, ensuring indices increase. Each subset has exactly one increasing-index representation, so there are no duplicate construction paths."
+        ],
+        "trace": {
+          "caption": "Subsets of [1,2] in traversal order",
+          "headers": [
+            "Action",
+            "Working path",
+            "New saved answer"
+          ],
+          "rows": [
+            [
+              "Initial call",
+              "[]",
+              "[]"
+            ],
+            [
+              "Choose 1",
+              "[1]",
+              "[1]"
+            ],
+            [
+              "Choose 2 after 1",
+              "[1,2]",
+              "[1,2]"
+            ],
+            [
+              "Undo to root; choose 2",
+              "[2]",
+              "[2]"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "new ArrayList<>(path) freezes the current contents for the result.",
+          "Removing the last element restores the path before the next loop choice."
+        ],
+        "takeaway": "A canonical construction order prevents duplicates before they are generated."
+      },
+      {
+        "id": "46",
+        "baseline": "Generating length-n sequences with repetition and filtering them afterward explores many illegal candidates.",
+        "reasoning": [
+          "A used array prevents choosing the same input position twice. Every unused position remains available, regardless of its numeric index.",
+          "Only save when the path has n values. Restore both the path and used[i] when returning from a branch."
+        ],
+        "trace": {
+          "caption": "Permutations of [1,2,3]: beginning of the search",
+          "headers": [
+            "Prefix",
+            "Available next values",
+            "Completed answers"
+          ],
+          "rows": [
+            [
+              "[]",
+              "1,2,3",
+              "None yet"
+            ],
+            [
+              "[1]",
+              "2,3",
+              "None yet"
+            ],
+            [
+              "[1,2]",
+              "3",
+              "[1,2,3]"
+            ],
+            [
+              "[1,3]",
+              "2",
+              "[1,3,2]"
+            ],
+            [
+              "[2] then [3]",
+              "Remaining unused values",
+              "Four other permutations"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "A start index would incorrectly forbid orders such as [2,1,3].",
+          "This code assumes distinct input values; duplicates require additional deduplication rules."
+        ],
+        "takeaway": "Order-sensitive output needs a different choice model from combinations."
+      }
+    ],
+    "optimization": "Pruning helps only when rejected partial paths cannot lead to answers. Enumeration still pays for output: subsets require Θ(n·2^n) total element copying and permutations Θ(n·n!). If the task asks only for a count or optimum, repeated states may be merged with DP instead of listing paths.",
+    "pitfalls": [
+      [
+        "Saving the live path",
+        "Every result may appear to change as recursion continues."
+      ],
+      [
+        "Undoing only some state",
+        "A leftover used flag can silently suppress valid sibling branches."
+      ],
+      [
+        "Calling exponential time a coding failure",
+        "Exponential-size output itself requires exponential work."
+      ]
+    ],
+    "interview": "“My path is a partial answer. I will enumerate each legal next choice once, restore state after exploring it, and copy completed results. Complexity includes the number and size of outputs.”",
+    "summary": "Explore a decision, learn everything below it, then restore exactly the state you started from."
+  },
+  "24": {
+    "intuition": [
+      "Dynamic programming stores answers to subproblems whose results are reused. Start with the question a recursive call would answer, then identify which calls ask that same question again. A cache can merge that repeated work.",
+      "A state is a promise about meaning: “dp[i] is the number of ways to reach stair i” differs from “reachable[i] says whether the first i characters can be segmented.” The table’s type, base cases, and transitions follow from that sentence—not the other way around.",
+      "Top-down memoization starts at the requested state and caches recursive results. Bottom-up tabulation computes states in dependency order. Both solve the same recurrence; neither guarantees polynomial time unless the number of states and work per state are suitably bounded."
+    ],
+    "steps": [
+      [
+        "Define the state in one sentence",
+        "Say exactly which input prefix or suffix is represented and whether its answer is a count, a boolean, or an optimum."
+      ],
+      [
+        "Derive the final choice",
+        "Partition valid solutions by the last step, last word, or last action. This explains why the recurrence includes all legal possibilities."
+      ],
+      [
+        "Answer the smallest states directly",
+        "An empty prefix is segmentable; there is one empty way to reach stair zero. These are semantic base cases."
+      ],
+      [
+        "Choose dependency order",
+        "If state i needs earlier prefixes, fill left to right. A recursive solution reaches those dependencies through calls and caches them."
+      ],
+      [
+        "Locate the answer and then compress",
+        "The final answer may be dp[n], a maximum over entries, or a particular inventory state. Remove old entries only after proving they will not be read again."
+      ]
+    ],
+    "patterns": [
+      [
+        "Counting",
+        "Add disjoint alternatives, as in Climbing Stairs."
+      ],
+      [
+        "Reachability",
+        "Use OR across possible previous states, as in Word Break."
+      ],
+      [
+        "Optimization and inventory",
+        "Use min/max over choices; include extra state such as holding a stock when it changes future legal actions."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "139",
+        "baseline": "Try every possible first word recursively. Different word choices can reach the same remaining suffix, causing repeated subproblems.",
+        "reasoning": [
+          "Define reachable[end] as whether s[0:end] can be segmented. A final word s[start:end] succeeds when reachable[start] is true and the word is in the dictionary.",
+          "The empty prefix is reachable. Fill end from left to right so all smaller start boundaries are ready. Trying every legal last word preserves alternatives that greedy segmentation would discard."
+        ],
+        "trace": {
+          "caption": "Word Break: aaaaaaa with {aaa,aaaa}",
+          "headers": [
+            "Prefix length",
+            "Valid preceding boundary + final word",
+            "reachable"
+          ],
+          "rows": [
+            [
+              "0",
+              "Empty prefix",
+              "true"
+            ],
+            [
+              "1,2",
+              "No dictionary word fits",
+              "false"
+            ],
+            [
+              "3",
+              "0 + aaa",
+              "true"
+            ],
+            [
+              "4",
+              "0 + aaaa",
+              "true"
+            ],
+            [
+              "5",
+              "Neither 1 + aaaa nor 2 + aaa is reachable",
+              "false"
+            ],
+            [
+              "6",
+              "3 + aaa",
+              "true"
+            ],
+            [
+              "7",
+              "3 + aaaa, or 4 + aaa",
+              "true"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "maxLength limits candidate substrings to lengths present in the dictionary.",
+          "Java substring construction and hashing cost time proportional to substring length; counting boundary pairs alone understates the implementation cost."
+        ],
+        "takeaway": "A boolean state can preserve multiple valid histories without remembering every segmentation."
+      },
+      {
+        "id": "70",
+        "baseline": "Recursive ways(n−1) + ways(n−2) repeats the same stair counts in many branches.",
+        "reasoning": [
+          "Define ways[i] as the number of ordered step sequences reaching stair i. Every path arrives from i−1 with a one-step move or i−2 with a two-step move; those cases are disjoint.",
+          "Use ways[0]=1 and ways[1]=1. A full table computes earlier entries once; the shown implementation keeps only the previous two because no future transition needs anything older."
+        ],
+        "trace": {
+          "caption": "Climbing Stairs: n=4",
+          "headers": [
+            "Stair i",
+            "Recurrence",
+            "ways[i]"
+          ],
+          "rows": [
+            [
+              "0",
+              "Empty sequence",
+              "1"
+            ],
+            [
+              "1",
+              "One single step",
+              "1"
+            ],
+            [
+              "2",
+              "ways[1] + ways[0]",
+              "2"
+            ],
+            [
+              "3",
+              "ways[2] + ways[1]",
+              "3"
+            ],
+            [
+              "4",
+              "ways[3] + ways[2]",
+              "5"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "At the start of iteration i, previous is ways[i−2] and current is ways[i−1].",
+          "Compute next before shifting variables so neither needed old value is overwritten."
+        ],
+        "takeaway": "Space optimization is a dependency-lifetime argument, not a different recurrence."
+      }
+    ],
+    "optimization": "Memoization needs an “unknown” state distinct from a computed false or zero; Boolean[] with null can represent boolean memo states. Bottom-up removes recursion depth but may compute states a top-down search never reaches. House Robber compresses two previous optima; stock-with-fee needs separate cash and hold states using the previous day’s values.",
+    "pitfalls": [
+      [
+        "Choosing an unclear state",
+        "“Best so far” is insufficient unless it specifies the processed input and retained constraints."
+      ],
+      [
+        "Treating every min/max problem as DP",
+        "First establish repeated subproblems and sufficient state; greedy or graph search may be better."
+      ],
+      [
+        "Compressing before deriving dependencies",
+        "Word Break can need many earlier prefixes, so two rolling variables are not a general 1D-DP rule."
+      ]
+    ],
+    "interview": "“I will define the subproblem, derive its final-choice cases, and state the base cases. Then I will cache repeated states or fill them in dependency order, count transitions, and only afterward consider memory compression.”",
+    "summary": "The recurrence is the reasoning; the table is memory for that reasoning.",
+    "progression": [
+      {
+        "title": "1. Start with the recursive question",
+        "body": "For n >= 0, ways(n) asks how many ordered one-or-two-step sequences reach n. The two recursive branches share smaller questions such as ways(n−2), so a plain recursion repeats work. Its running time is exponential (O(2^n) is an upper bound) and its stack depth is O(n).",
+        "code": "int ways(int n) {\n    if (n <= 1) return 1;\n    return ways(n - 1) + ways(n - 2);\n}"
+      },
+      {
+        "title": "2. Cache repeated states",
+        "body": "An Integer array distinguishes an uncomputed null from a stored answer. Each n is solved once; counting constant-time integer arithmetic, this version uses O(n) time and O(n) cache plus call-stack space. These int examples are intended for n <= 45.",
+        "code": "int waysMemo(int n) {\n    return countWays(n, new Integer[n + 1]);\n}\n\nint countWays(int n, Integer[] memo) {\n    if (n <= 1) return 1;\n    if (memo[n] != null) return memo[n];\n    memo[n] = countWays(n - 1, memo) + countWays(n - 2, memo);\n    return memo[n];\n}"
+      },
+      {
+        "title": "3. Fill the same states in order",
+        "body": "Bottom-up evaluation keeps the state definition and recurrence. It changes the order of computation: smaller stairs are complete before larger stairs read them. It uses O(n) time and O(n) table space without recursive calls.",
+        "code": "int waysTable(int n) {\n    int[] dp = new int[n + 1];\n    dp[0] = 1;\n    for (int i = 1; i <= n; i++) {\n        dp[i] = dp[i - 1];\n        if (i >= 2) dp[i] += dp[i - 2];\n    }\n    return dp[n];\n}"
+      },
+      {
+        "title": "4. Keep only live dependencies",
+        "body": "The Climbing Stairs implementation below retains only the last two counts. That reduces auxiliary space to O(1), while time remains O(n). This compression is valid because no later transition reads an older stair count; it is not a rule for every one-dimensional DP.",
+        "code": "// Before computing stair i:\n// previous = ways[i - 2], current = ways[i - 1]\nint next = previous + current;\nprevious = current;\ncurrent = next;"
+      }
+    ]
+  },
+  "25": {
+    "intuition": [
+      "Grid DP applies when allowed moves create an acyclic dependency structure. With right/down movement, every arrival at a cell comes from above or left, so row-major order computes predecessors first.",
+      "A grid picture does not automatically imply DP. If moves can cycle in four directions, a plain top-left-to-bottom-right fill generally cannot finalize values; the problem may need traversal or shortest paths."
+    ],
+    "steps": [
+      [
+        "Define the cell meaning",
+        "dp[r][c] may count paths to the cell or hold the minimum cost including that cell."
+      ],
+      [
+        "Classify the final move",
+        "Every non-origin path arrives from above or left, giving the recurrence."
+      ],
+      [
+        "Set origin and borders",
+        "The origin has one empty-move path for counting, but its own cell cost for minimum-sum problems."
+      ],
+      [
+        "Fill dependencies first",
+        "Row-major order works because above is in the previous row and left was just computed."
+      ],
+      [
+        "Read the destination",
+        "Then ask which earlier rows remain necessary before compressing storage."
+      ]
+    ],
+    "patterns": [
+      [
+        "Path counts",
+        "Add predecessor counts because final moves partition paths into disjoint cases."
+      ],
+      [
+        "Minimum path cost",
+        "Take the smaller predecessor cost and add the current cell’s cost."
+      ],
+      [
+        "Obstacles",
+        "A blocked cell contributes zero paths; it cannot pass along a stale count."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "62",
+        "baseline": "Enumerating every right/down path has combinatorial growth, and many paths repeatedly reach the same cell.",
+        "reasoning": [
+          "Let dp[r][c] count paths from the origin to this cell. For an interior cell, every path ends from above or left, so add those counts.",
+          "An unobstructed first row or column has exactly one path. Fill the rest after those boundary states are known."
+        ],
+        "trace": {
+          "caption": "Unique Paths on a 3×3 grid",
+          "headers": [
+            "Row",
+            "Column 0",
+            "Column 1",
+            "Column 2"
+          ],
+          "rows": [
+            [
+              "0",
+              "1",
+              "1",
+              "1"
+            ],
+            [
+              "1",
+              "1",
+              "1+1 = 2",
+              "1+2 = 3"
+            ],
+            [
+              "2",
+              "1",
+              "2+1 = 3",
+              "3+3 = 6"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The table uses 3×3 to expose each addition; the problem card’s 3×7 example evaluates to 28.",
+          "The 2D implementation keeps every cell for clarity before considering a rolling row."
+        ],
+        "takeaway": "Count disjoint last-move cases; do not count the same path through multiple descriptions."
+      },
+      {
+        "id": "64",
+        "baseline": "Enumerating paths and summing each one repeats the same best-prefix question.",
+        "reasoning": [
+          "Define dp[r][c] as the minimum path sum including grid[r][c]. Any optimal path must use an optimal path to whichever predecessor it chose.",
+          "At the origin, use the cell cost. On borders there is only one predecessor; interior cells choose the cheaper of two."
+        ],
+        "trace": {
+          "caption": "Minimum sums for [[1,3,1],[1,5,1],[4,2,1]]",
+          "headers": [
+            "Row",
+            "Column 0",
+            "Column 1",
+            "Column 2"
+          ],
+          "rows": [
+            [
+              "0",
+              "1",
+              "4",
+              "5"
+            ],
+            [
+              "1",
+              "2",
+              "7",
+              "6"
+            ],
+            [
+              "2",
+              "6",
+              "8",
+              "7"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Separate origin and border branches avoid pretending an out-of-grid predecessor has cost zero.",
+          "This implementation allocates a new table, so the input grid stays unchanged."
+        ],
+        "takeaway": "Initialization depends on the meaning of a state: path count and path cost have different origins."
+      }
+    ],
+    "optimization": "A rolling row reduces O(RC) storage to O(C): before updating dp[c], it means “above”; after updating dp[c−1], that entry means “left.” For obstacles, explicitly reset dp[c] to zero. If you need to reconstruct a path, keep predecessor choices or use an additional reconstruction strategy.",
+    "pitfalls": [
+      [
+        "Initializing every border to one despite obstacles",
+        "A blocked border cell also blocks cells after it along that border."
+      ],
+      [
+        "Using zero as an impossible minimum",
+        "Zero may incorrectly win over every real positive cost."
+      ],
+      [
+        "Reading compressed entries with the wrong meaning",
+        "During a row, the array intentionally mixes previous-row and current-row values."
+      ]
+    ],
+    "interview": "“I will define what reaching a cell means and classify paths by their final move. The movement rules form a dependency order, so I can fill each state after its predecessors and then compress unused rows.”",
+    "summary": "A grid recurrence is a last-move argument plus a valid dependency order."
+  },
+  "26": {
+    "intuition": [
+      "Knapsack-style DP represents a resource total such as weight, amount, or sum. The state compresses many different selections that have the same remaining implications for future choices.",
+      "Before writing loops, answer two questions: can an item be reused, and does order distinguish answers? A loop direction or nesting change can silently turn “use once” into “reuse freely,” or combinations into ordered sequences."
+    ],
+    "steps": [
+      [
+        "Define the resource state",
+        "Say whether dp[s] means reachable, minimum items, or number of ways to make total s."
+      ],
+      [
+        "Set the empty-selection base",
+        "Sum zero is reachable, needs zero coins, and has one empty combination."
+      ],
+      [
+        "Derive skip/take or final-item cases",
+        "A 0/1 choice reads the previous item stage; unlimited reuse may read the current stage."
+      ],
+      [
+        "Choose loop order from dependencies",
+        "With compressed 0/1 states scan sums downward. For unlimited reuse, upward scans can reuse the current item."
+      ],
+      [
+        "Interpret impossible states",
+        "Use false or an appropriate infinity sentinel, and translate failure to the requested output."
+      ]
+    ],
+    "patterns": [
+      [
+        "0/1 subset feasibility",
+        "Each occurrence is available once; boolean OR combines skip and take."
+      ],
+      [
+        "Unlimited minimum cost",
+        "Choose a final coin and minimize one plus the smaller amount’s answer."
+      ],
+      [
+        "Counting combinations",
+        "With reusable coins, put coins outside and increasing sums inside; sum-first counting instead distinguishes order."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "416",
+        "baseline": "Trying every subset explores 2^n choices even when many subsets reach the same sum.",
+        "reasoning": [
+          "Equal partition is equivalent to selecting a subset totaling half the full sum. If the total is odd, no such integer target exists.",
+          "After processing an item x, reachable sums come from either skipping x or adding it to a sum possible before x. A downward scan preserves that previous-stage meaning in one array."
+        ],
+        "trace": {
+          "caption": "Partition [1,5,11,5], target 11",
+          "headers": [
+            "Processed item",
+            "Reachable sums up to 11",
+            "Key observation"
+          ],
+          "rows": [
+            [
+              "None",
+              "{0}",
+              "Empty subset"
+            ],
+            [
+              "1",
+              "{0,1}",
+              "Use 1 once"
+            ],
+            [
+              "First 5",
+              "{0,1,5,6}",
+              "6 = 1 + 5"
+            ],
+            [
+              "11",
+              "{0,1,5,6,11}",
+              "Target now reachable"
+            ],
+            [
+              "Second 5",
+              "{0,1,5,6,10,11}",
+              "Each 5 is a distinct available item"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "With x=5 and an upward scan, a newly true dp[5] could make dp[10] true using the same occurrence twice.",
+          "Only the numeric target bounds the array; O(nS) is pseudo-polynomial in input encoding size."
+        ],
+        "takeaway": "Loop direction expresses which version of a state a transition reads."
+      },
+      {
+        "id": "322",
+        "baseline": "A recursive search tries every possible final coin repeatedly; choosing the largest coin greedily fails for [1,3,4] and amount 6.",
+        "reasoning": [
+          "Let dp[s] be the minimum coins for amount s. Removing the final coin c leaves amount s−c, so minimize dp[s−c]+1 across valid denominations.",
+          "Initialize dp[0]=0 and all other entries to amount+1. Positive integer coins guarantee that any feasible solution uses at most amount coins, so the sentinel is larger than every valid answer."
+        ],
+        "trace": {
+          "caption": "Coin Change: coins [1,3,4], amount 6",
+          "headers": [
+            "Amount",
+            "Best final choice",
+            "Minimum coins"
+          ],
+          "rows": [
+            [
+              "0",
+              "Empty selection",
+              "0"
+            ],
+            [
+              "1",
+              "1",
+              "1"
+            ],
+            [
+              "2",
+              "1+1",
+              "2"
+            ],
+            [
+              "3",
+              "3",
+              "1"
+            ],
+            [
+              "4",
+              "4",
+              "1"
+            ],
+            [
+              "5",
+              "4+1",
+              "2"
+            ],
+            [
+              "6",
+              "3+3",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The sum-first order is valid for minimization; different orderings of the same coins do not change a minimum.",
+          "A sentinel remaining above amount means impossible and becomes -1."
+        ],
+        "takeaway": "Distinguish the optimization objective from the rules about reuse and ordering."
+      }
+    ],
+    "optimization": "Start with a 2D item-by-sum table if compressed dependencies feel unclear. A 0/1 transition reads dp[i−1][s] and dp[i−1][s−x]; compression then explains the downward scan. Counting Coin Change II uses dp[0]=1, coin-first loops, and upward sums; this differs from minimum-coin initialization.",
+    "pitfalls": [
+      [
+        "Scanning 0/1 sums upward",
+        "The same item can be reused within one stage."
+      ],
+      [
+        "Initializing minimum states to zero",
+        "Zero incorrectly beats every actual coin count."
+      ],
+      [
+        "Counting permutations when combinations were requested",
+        "Sum-first counting can count 1+2 and 2+1 separately."
+      ]
+    ],
+    "interview": "“My state records the answer for a resource total. I will state whether each item is reusable and derive the transition from that rule before choosing loop order. The cost depends on the numeric target as well as the item count.”",
+    "summary": "The loops encode the selection rules; derive them from the uncompressed state meaning."
+  },
+  "27": {
+    "intuition": [
+      "Two-sequence DP compares prefixes. A pair of prefix lengths captures exactly how much of each input has been considered, letting many different match or edit histories share one state.",
+      "A subsequence may skip positions while preserving order; a substring must be contiguous. That single distinction changes the recurrence. For subsequences, a mismatch often means skipping a character rather than resetting progress."
+    ],
+    "steps": [
+      [
+        "Define prefix lengths",
+        "dp[i][j] refers to the first i and first j characters; their final characters are at i−1 and j−1."
+      ],
+      [
+        "Classify the final characters",
+        "Separate matching and mismatching cases and enumerate every legal final action."
+      ],
+      [
+        "Initialize empty prefixes",
+        "LCS with an empty string is zero; editing to or from an empty string costs the other length."
+      ],
+      [
+        "Fill predecessor states first",
+        "Left, above, and diagonal values must be ready before computing the current entry."
+      ],
+      [
+        "Separate length from reconstruction",
+        "A scalar optimum does not automatically provide the actual sequence or edit script."
+      ]
+    ],
+    "patterns": [
+      [
+        "Common subsequence",
+        "A match extends a diagonal; a mismatch drops one final character."
+      ],
+      [
+        "Edit distance",
+        "Insert, delete, and replace correspond to three predecessor states."
+      ],
+      [
+        "Single-sequence endpoints",
+        "LIS dp[i] means the best subsequence ending exactly at i, and the final answer is max(dp), not necessarily its last entry."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "1143",
+        "baseline": "Enumerating subsequences and checking each against the other string requires exponential work.",
+        "reasoning": [
+          "If final characters match, they can extend an optimal LCS of the shorter prefixes. If they differ, at least one is omitted, so take the better of dropping either one.",
+          "The leading zero row and column express empty-prefix answers and remove special cases from the recurrence."
+        ],
+        "trace": {
+          "caption": "LCS of abc and ac; columns are prefixes of ac",
+          "headers": [
+            "Prefix of abc",
+            "Empty",
+            "a",
+            "ac"
+          ],
+          "rows": [
+            [
+              "Empty",
+              "0",
+              "0",
+              "0"
+            ],
+            [
+              "a",
+              "0",
+              "1",
+              "1"
+            ],
+            [
+              "ab",
+              "0",
+              "1",
+              "1"
+            ],
+            [
+              "abc",
+              "0",
+              "1",
+              "2"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The table uses abc/ac for a compact trace; abcde/ace in the problem card follows the same recurrence and returns 3.",
+          "On mismatch, retain the best neighboring prefix result; resetting to zero would describe a different contiguous-match problem."
+        ],
+        "takeaway": "Dropping a final character explores an alternative without discarding earlier valid matches."
+      },
+      {
+        "id": "72",
+        "baseline": "Recursively trying insert, delete, and replace revisits the same pair of remaining prefixes.",
+        "reasoning": [
+          "Let dp[i][j] be the minimum edits from a[0:i] to b[0:j]. A deletion comes from dp[i−1][j], an insertion from dp[i][j−1], and a replacement from dp[i−1][j−1].",
+          "Matching final characters cost no edit and use the diagonal directly. Empty-prefix borders count the necessary insertions or deletions."
+        ],
+        "trace": {
+          "caption": "Edit distance from horse to ros",
+          "headers": [
+            "Prefix of horse",
+            "Empty",
+            "r",
+            "ro",
+            "ros"
+          ],
+          "rows": [
+            [
+              "Empty",
+              "0",
+              "1",
+              "2",
+              "3"
+            ],
+            [
+              "h",
+              "1",
+              "1",
+              "2",
+              "3"
+            ],
+            [
+              "ho",
+              "2",
+              "2",
+              "1",
+              "2"
+            ],
+            [
+              "hor",
+              "3",
+              "2",
+              "2",
+              "2"
+            ],
+            [
+              "hors",
+              "4",
+              "3",
+              "3",
+              "2"
+            ],
+            [
+              "horse",
+              "5",
+              "4",
+              "4",
+              "3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The three operations add one only when the final characters differ.",
+          "One optimal script is horse → rorse → rose → ros, using replacement, deletion, deletion."
+        ],
+        "takeaway": "Each transition should name a concrete final operation on the represented prefixes."
+      }
+    ],
+    "optimization": "A rolling row reduces length-only LCS or edit-distance memory, but preserve the old diagonal before overwriting it. For LIS, minimal tails plus binary search improves O(n²) to O(n log n); the tails array itself is not necessarily a subsequence. Reconstruction needs additional choices or predecessor indices.",
+    "pitfalls": [
+      [
+        "Confusing an index with a prefix length",
+        "dp[i][j] compares characters at i−1 and j−1."
+      ],
+      [
+        "Using zero edit-distance borders",
+        "Transforming a nonempty prefix to empty requires deletions."
+      ],
+      [
+        "Returning only the final LIS endpoint",
+        "The longest subsequence can end before the final input element."
+      ]
+    ],
+    "interview": "“A state represents two prefixes. I will classify their final characters, map each permitted action to a smaller prefix pair, and use empty prefixes as the base cases. Then I will distinguish computing the optimum from reconstructing it.”",
+    "summary": "Turn a comparison of whole sequences into decisions about their final characters."
+  },
+  "28": {
+    "intuition": [
+      "A greedy algorithm commits to a choice without revisiting alternatives. It is correct only when a proof shows that commitment cannot make the best achievable result worse.",
+      "Two useful proofs are exchange and dominance. Exchange replaces a choice in an optimal solution with your greedy choice. Dominance shows that one retained summary is at least as useful as every discarded alternative."
+    ],
+    "steps": [
+      [
+        "State the local choice",
+        "Say exactly what you keep or select: earliest finish, lowest price so far, or farthest reachable boundary."
+      ],
+      [
+        "Compare against an alternative",
+        "Explain why a solution using a different first choice can be changed without harm."
+      ],
+      [
+        "Preserve the remaining problem",
+        "After committing, verify that the same argument applies to what remains."
+      ],
+      [
+        "Search for counterexamples",
+        "Test the rule against cases where an attractive immediate choice blocks future progress."
+      ]
+    ],
+    "patterns": [
+      [
+        "Farthest reach",
+        "Keep the largest reachable prefix boundary when smaller reaches offer no additional possibilities."
+      ],
+      [
+        "Earliest finish",
+        "For maximum compatible interval count, finish as early as possible to leave room."
+      ],
+      [
+        "Best prefix summary",
+        "For one stock transaction, retain the minimum earlier price when evaluating a sale today."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "55",
+        "baseline": "Trying every legal jump can explore many paths; DP could store reachability for every index.",
+        "reasoning": [
+          "Because every jump length up to nums[i] is allowed, reachable positions form a prefix. A single farthest boundary summarizes that prefix.",
+          "Only reachable indices can extend farthest. If i exceeds it, no earlier reachable position can cross the gap, so the destination is impossible."
+        ],
+        "trace": {
+          "caption": "Jump Game on [2,3,1,1,4]",
+          "headers": [
+            "Index",
+            "Old farthest",
+            "Candidate reach",
+            "Conclusion"
+          ],
+          "rows": [
+            [
+              "0",
+              "0",
+              "0+2 = 2",
+              "Extend to 2"
+            ],
+            [
+              "1",
+              "2",
+              "1+3 = 4",
+              "Extend to 4; destination reached"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Check i > farthest before using nums[i]. An unreachable index must not extend the range.",
+          "The method keeps a reachable set summary; it does not construct the sequence of jumps."
+        ],
+        "takeaway": "Greedy can retain a dominant summary rather than literally choose one jump."
+      },
+      {
+        "id": "435",
+        "baseline": "Enumerating subsets of intervals and testing compatibility is exponential.",
+        "reasoning": [
+          "Minimizing removals is equivalent to maximizing the number kept. Sort by finishing time and keep the next compatible interval.",
+          "Replace the first interval of an optimal compatible schedule with the earliest-finishing available one. It ends no later, so every later interval in that schedule remains compatible. Repeat on the remaining suffix."
+        ],
+        "trace": {
+          "caption": "Schedule [[1,2],[2,3],[3,4],[1,3]] after sorting by end",
+          "headers": [
+            "Candidate",
+            "Current finish",
+            "Action"
+          ],
+          "rows": [
+            [
+              "[1,2]",
+              "-∞",
+              "Keep; finish=2"
+            ],
+            [
+              "[2,3]",
+              "2",
+              "Keep; finish=3"
+            ],
+            [
+              "[1,3]",
+              "3",
+              "Remove; overlaps"
+            ],
+            [
+              "[3,4]",
+              "3",
+              "Keep; total removed=1"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The two end-3 intervals may appear in either tie order; the final count is unchanged.",
+          "Touching is allowed, so only start < end is rejected."
+        ],
+        "takeaway": "The exchange proof explains why earliest finish, rather than earliest start, is the useful order."
+      }
+    ],
+    "optimization": "A correct greedy summary often removes a DP dimension, but only after a dominance proof. Coin denominations [1,3,4] and amount 6 refute “take the largest coin first”: 4+1+1 loses to 3+3. Count sorting workspace separately from the constant state of a greedy scan.",
+    "pitfalls": [
+      [
+        "Mistaking a plausible rule for a proof",
+        "Several successful examples do not establish optimality."
+      ],
+      [
+        "Sorting intervals by start for scheduling",
+        "A very early long interval can block many short ones."
+      ],
+      [
+        "Discarding useful state too soon",
+        "If two histories offer different future options, one scalar may not dominate both."
+      ]
+    ],
+    "interview": "“I will justify this choice with an exchange argument: replacing an optimal solution’s first choice with mine leaves at least as much room for the rest. Then I can repeat the argument on the remaining instance.”",
+    "summary": "Commit only after proving the alternatives cannot improve the future."
+  },
+  "29": {
+    "intuition": [
+      "A trie shares storage for common prefixes. Each edge consumes one character, and the node reached after reading a prefix represents all stored words that begin with it.",
+      "Reaching a node does not imply a complete word ends there. A terminal marker distinguishes “this prefix exists” from “this exact word was inserted.” That distinction is central to both exact search and wildcard search."
+    ],
+    "steps": [
+      [
+        "Choose the alphabet representation",
+        "An array of 26 children fits lowercase English letters; other alphabets may call for maps."
+      ],
+      [
+        "Walk one character per edge",
+        "Create missing nodes during insertion; reject missing edges during exact lookup."
+      ],
+      [
+        "Mark complete words",
+        "Set an end flag only after every character has been consumed."
+      ],
+      [
+        "Branch only when required",
+        "A wildcard consumes exactly one character and tries each existing child."
+      ],
+      [
+        "Interpret the final node",
+        "Prefix queries require existence; word queries also require the terminal marker."
+      ]
+    ],
+    "patterns": [
+      [
+        "Exact word and prefix",
+        "Share the same walk but check different completion conditions."
+      ],
+      [
+        "Wildcard search",
+        "Combine trie navigation with backtracking over existing child edges."
+      ],
+      [
+        "Shortest dictionary root",
+        "Stop at the first terminal prefix when replacing words with their shortest root."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "208",
+        "baseline": "A set supports exact membership, but testing a prefix by scanning every stored word repeats character work.",
+        "reasoning": [
+          "Insertion follows or creates one node per character. Common beginnings reuse the same path, so inserting app after apple shares its first three edges.",
+          "search requires the reached node to be terminal; startsWith only requires the path to exist."
+        ],
+        "trace": {
+          "caption": "Insert apple, then inspect app",
+          "headers": [
+            "Operation",
+            "Path reached",
+            "Terminal?",
+            "Answer"
+          ],
+          "rows": [
+            [
+              "insert(apple)",
+              "a→p→p→l→e",
+              "Mark e",
+              "—"
+            ],
+            [
+              "search(app)",
+              "a→p→p",
+              "No",
+              "false"
+            ],
+            [
+              "startsWith(app)",
+              "a→p→p",
+              "Not required",
+              "true"
+            ],
+            [
+              "insert(app); search(app)",
+              "Same a→p→p",
+              "Now yes",
+              "true"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "c − a maps lowercase English characters to child slots; it is not a general Unicode mapping.",
+          "The root also represents the empty prefix, though the original problem restricts word lengths."
+        ],
+        "takeaway": "A path represents a prefix; a terminal flag represents membership as a complete word."
+      },
+      {
+        "id": "211",
+        "baseline": "Scanning every stored word for every wildcard query costs time proportional to the entire dictionary.",
+        "reasoning": [
+          "A recursive search state is a trie node plus the next pattern index. A letter chooses one edge; a dot tries all existing children.",
+          "Success requires consuming the entire pattern at a terminal node. A dot matches one character, not an arbitrary-length substring."
+        ],
+        "trace": {
+          "caption": "Dictionary {bad,dad,mad}, pattern .ad",
+          "headers": [
+            "Pattern position",
+            "Action",
+            "Possible matched prefixes"
+          ],
+          "rows": [
+            [
+              "0: .",
+              "Try root children b,d,m",
+              "b, d, m"
+            ],
+            [
+              "1: a",
+              "Follow a from each branch",
+              "ba, da, ma"
+            ],
+            [
+              "2: d",
+              "Follow d",
+              "bad, dad, mad"
+            ],
+            [
+              "End",
+              "Check terminal marker",
+              "Any one terminal match gives true"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "The implementation short-circuits after one successful branch, so it may not visit every branch shown.",
+          "The recursive base case checks node.end rather than returning true solely because the pattern ended."
+        ],
+        "takeaway": "Wildcards change a single path lookup into a search over matching prefixes."
+      }
+    ],
+    "optimization": "Exact operations take O(L) time for length L. Wildcards can branch widely and are not generally O(L). An array of children trades constant-time access for many empty slots; sparse maps can reduce those slots at different overhead. charAt loops avoid the temporary arrays used by toCharArray.",
+    "pitfalls": [
+      [
+        "Treating every prefix as a word",
+        "search(app) must stay false after inserting only apple."
+      ],
+      [
+        "Claiming wildcard lookup is always linear",
+        "Several dots can explore many trie nodes."
+      ],
+      [
+        "Using a fixed 26-letter index for other input",
+        "Validate or change the child representation when the alphabet changes."
+      ]
+    ],
+    "interview": "“Each node represents a prefix, and a terminal flag marks complete words. Exact characters choose one child; a wildcard branches over existing children while advancing one pattern position.”",
+    "summary": "Organize words by shared beginnings, and keep prefix existence separate from complete-word membership."
+  },
+  "30": {
+    "intuition": [
+      "Bit operations act independently on fixed-width binary positions. They are useful when the problem’s structure matches an algebraic identity, such as equal values canceling under XOR.",
+      "Start by writing the identity and its assumptions. XOR removes pairs, not arbitrary duplicates; clearing one set bit counts bits, not numeric decrements. Java int has 32 bits, which also shapes overflow and shift behavior."
+    ],
+    "steps": [
+      [
+        "State the bit identity",
+        "For XOR: x ^ x = 0 and x ^ 0 = x. For clearing a bit: n & (n−1) removes the lowest set bit."
+      ],
+      [
+        "Match it to the input guarantee",
+        "Pair cancellation requires exactly paired duplicates except for the target value."
+      ],
+      [
+        "Choose a neutral initial value",
+        "XOR accumulation starts at zero."
+      ],
+      [
+        "Define termination for signed values",
+        "Use n != 0 when counting all set bits in an int bit pattern."
+      ],
+      [
+        "State the width model",
+        "At most 32 iterations is constant time for Java int, though a variable-width model may use O(b)."
+      ]
+    ],
+    "patterns": [
+      [
+        "XOR cancellation",
+        "Combine all values when unwanted contributions occur in equal pairs."
+      ],
+      [
+        "Bit removal",
+        "Repeatedly clear the lowest set bit to count or iterate set positions."
+      ],
+      [
+        "Bit DP",
+        "Counting Bits uses a smaller number’s answer plus the current low bit, or the answer after clearing one bit."
+      ]
+    ],
+    "examples": [
+      {
+        "id": "136",
+        "baseline": "A frequency map uses O(n) extra memory; sorting needs extra work or changes input order.",
+        "reasoning": [
+          "XOR is associative and commutative, so equal values can be grouped conceptually even when they appear far apart.",
+          "Each pair becomes zero, and zero does not change the remaining value. The guarantee that exactly one value is unpaired makes the final accumulator the answer."
+        ],
+        "trace": {
+          "caption": "Single Number in [4,1,2,1,2]",
+          "headers": [
+            "Incoming",
+            "Accumulator calculation",
+            "Decimal result"
+          ],
+          "rows": [
+            [
+              "4",
+              "0 ^ 4",
+              "4"
+            ],
+            [
+              "1",
+              "4 ^ 1",
+              "5"
+            ],
+            [
+              "2",
+              "5 ^ 2",
+              "7"
+            ],
+            [
+              "1",
+              "7 ^ 1",
+              "6"
+            ],
+            [
+              "2",
+              "6 ^ 2",
+              "4"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "Intermediate values need not be input values; only the cancellation identity matters.",
+          "The same identity works for negative int bit patterns."
+        ],
+        "takeaway": "The input multiplicity guarantee is part of the correctness proof."
+      },
+      {
+        "id": "191",
+        "baseline": "Testing all 32 bit positions is already constant time; clearing set bits visits only positions containing one.",
+        "reasoning": [
+          "Subtracting one flips the lowest one to zero and all trailing zeros to ones. AND with the original value keeps higher bits but removes that lowest one.",
+          "Each iteration removes exactly one set bit, so the iteration count is the answer."
+        ],
+        "trace": {
+          "caption": "Count bits of 11, shown in four binary positions",
+          "headers": [
+            "n",
+            "n−1",
+            "n & (n−1)",
+            "Count"
+          ],
+          "rows": [
+            [
+              "1011",
+              "1010",
+              "1010",
+              "1"
+            ],
+            [
+              "1010",
+              "1001",
+              "1000",
+              "2"
+            ],
+            [
+              "1000",
+              "0111",
+              "0000",
+              "3"
+            ]
+          ]
+        },
+        "codeNotes": [
+          "n != 0 handles signed patterns as well as positive integers.",
+          "Even when n is the int sign-bit pattern, Java’s fixed-width subtraction and AND still clear one set bit."
+        ],
+        "takeaway": "Count a monotone structural change: exactly one one-bit disappears per step."
+      }
+    ],
+    "optimization": "For fixed-width int, a full bit scan is also O(1); the set-bit loop is O(b) for b set bits and at most 32. Use >>> for zero-fill right shifts when required, and remember Java masks int shift distances to five bits, so 1 << 32 is not a new 33rd bit.",
+    "pitfalls": [
+      [
+        "Applying XOR to triple duplicates",
+        "Three equal values leave one copy rather than canceling."
+      ],
+      [
+        "Using n > 0 to count all bits",
+        "Negative signed representations would be skipped."
+      ],
+      [
+        "Confusing & and &&",
+        "One combines bit patterns; the other combines boolean conditions with short-circuiting."
+      ]
+    ],
+    "interview": "“I will state the identity and show how the input guarantee lets unwanted values cancel. For bit counting, each iteration clears exactly one set bit, so both correctness and the iteration bound follow.”",
+    "summary": "A bit trick is an algebraic proof applied to a fixed-width representation."
+  }
+}
