@@ -1,0 +1,417 @@
+{
+  "1": {
+    "problemIds": [
+      "217",
+      "242",
+      "383",
+      "205",
+      "290",
+      "36",
+      "219",
+      "41",
+      "380",
+      "271",
+      "2013",
+      "149",
+      "981",
+      "138",
+      "146",
+      "133",
+      "355",
+      "169",
+      "763",
+      "13",
+      "268",
+      "73"
+    ],
+    "note": ""
+  },
+  "2": {
+    "problemIds": [
+      "11",
+      "125",
+      "392",
+      "26",
+      "27",
+      "80",
+      "88",
+      "189",
+      "31",
+      "75",
+      "151",
+      "58",
+      "42",
+      "86",
+      "14",
+      "5",
+      "647",
+      "9",
+      "48"
+    ],
+    "note": ""
+  },
+  "3": {
+    "problemIds": [
+      "219",
+      "438",
+      "424",
+      "30",
+      "28"
+    ],
+    "note": ""
+  },
+  "4": {
+    "problemIds": [
+      "189",
+      "42",
+      "918",
+      "437",
+      "134",
+      "135"
+    ],
+    "note": "Compare accumulated-state solutions with related prefix/suffix decompositions: path sums, circular ranges, water boundaries, and two-pass constraints. Some cards deliberately show an alternative constant-space solution."
+  },
+  "5": {
+    "problemIds": [
+      "41",
+      "88",
+      "31",
+      "75",
+      "274",
+      "228",
+      "252",
+      "148",
+      "853",
+      "215",
+      "502",
+      "846"
+    ],
+    "note": ""
+  },
+  "6": {
+    "problemIds": [
+      "35",
+      "74",
+      "240",
+      "153",
+      "162",
+      "69",
+      "4",
+      "981",
+      "222"
+    ],
+    "note": ""
+  },
+  "7": {
+    "problemIds": [
+      "69",
+      "274",
+      "778"
+    ],
+    "note": "Extend feasibility reasoning to integer square roots, citation thresholds, and water levels. The H-index card shows a sorting solution and Swim in Rising Water shows a best-first solution; both also admit binary search with a suitable feasibility check."
+  },
+  "8": {
+    "problemIds": [
+      "228",
+      "252",
+      "253",
+      "452",
+      "1851"
+    ],
+    "note": ""
+  },
+  "9": {
+    "problemIds": [
+      "253",
+      "1851"
+    ],
+    "note": "Meeting rooms and offline interval queries extend event-based processing. Meeting rooms accumulates deltas; minimum-interval queries combine a sorted sweep with a heap."
+  },
+  "10": {
+    "problemIds": [
+      "2",
+      "24",
+      "25",
+      "92",
+      "61",
+      "82",
+      "86",
+      "160",
+      "234",
+      "143",
+      "148",
+      "138",
+      "146",
+      "114"
+    ],
+    "note": ""
+  },
+  "11": {
+    "problemIds": [
+      "160",
+      "142",
+      "234",
+      "143",
+      "148",
+      "202"
+    ],
+    "note": ""
+  },
+  "12": {
+    "problemIds": [
+      "151",
+      "58",
+      "71",
+      "394",
+      "224",
+      "32",
+      "297",
+      "22",
+      "678",
+      "6",
+      "68"
+    ],
+    "note": "This practice also covers parsing and simulation: nested expressions, path normalization, zigzag output, and text justification. Choose a stack only when the task has last-in-first-out dependencies."
+  },
+  "13": {
+    "problemIds": [
+      "42",
+      "853"
+    ],
+    "note": "Compare the stack template with related monotone frontiers. Trapping Rain Water is shown with two pointers; Car Fleet compresses its frontier to one arrival time after sorting."
+  },
+  "14": {
+    "problemIds": [
+      "918"
+    ],
+    "note": ""
+  },
+  "15": {
+    "problemIds": [
+      "226",
+      "100",
+      "101",
+      "110",
+      "572",
+      "112",
+      "129",
+      "1448",
+      "124",
+      "437",
+      "94",
+      "105",
+      "106",
+      "114",
+      "297",
+      "222",
+      "108",
+      "427"
+    ],
+    "note": "Tree construction, serialization, quad trees, and path DP extend the recursive-contract idea. Define the helper’s return value or the inherited path state separately for each task."
+  },
+  "16": {
+    "problemIds": [
+      "103",
+      "637",
+      "117",
+      "286"
+    ],
+    "note": ""
+  },
+  "17": {
+    "problemIds": [
+      "94",
+      "108",
+      "530",
+      "173"
+    ],
+    "note": ""
+  },
+  "18": {
+    "problemIds": [
+      "133",
+      "130",
+      "695",
+      "417",
+      "286",
+      "127",
+      "433",
+      "909",
+      "399",
+      "323",
+      "261",
+      "329",
+      "332",
+      "212"
+    ],
+    "note": "Euler trails and weighted-ratio queries are labeled extensions. Reconstruct Itinerary consumes edges and builds a route on unwinding; Evaluate Division multiplies edge ratios. Neither uses ordinary shortest unweighted path logic."
+  },
+  "19": {
+    "problemIds": [
+      "269",
+      "329"
+    ],
+    "note": "Alien Dictionary builds explicit ordering constraints. Longest Increasing Path treats increasing moves as a DAG and uses memoized DFS; topological layers are another solution."
+  },
+  "20": {
+    "problemIds": [
+      "323",
+      "261",
+      "1584"
+    ],
+    "note": "Connected-components and valid-tree problems directly use DSU. The minimum-spanning-tree comparison shows dense Prim; Kruskal is the DSU-based alternative."
+  },
+  "21": {
+    "problemIds": [
+      "399",
+      "778",
+      "787",
+      "1584"
+    ],
+    "note": "The extensions distinguish path problems from other weighted-graph tasks: stop-limited flights use bounded Bellman–Ford, point connection uses Prim’s minimum spanning tree, and equation evaluation uses ratio traversal. Their correctness arguments differ from Dijkstra’s."
+  },
+  "22": {
+    "problemIds": [
+      "253",
+      "1851",
+      "215",
+      "703",
+      "1046",
+      "973",
+      "373",
+      "502",
+      "621",
+      "355"
+    ],
+    "note": "Some selection problems have simpler alternatives: meeting rooms can use event deltas and Task Scheduler can use a frequency formula. Their cards show those solutions and explain the heap alternatives."
+  },
+  "23": {
+    "problemIds": [
+      "17",
+      "22",
+      "40",
+      "77",
+      "90",
+      "131",
+      "51",
+      "52",
+      "212"
+    ],
+    "note": ""
+  },
+  "24": {
+    "problemIds": [
+      "32",
+      "918",
+      "787",
+      "91",
+      "53",
+      "152",
+      "213",
+      "746",
+      "118",
+      "279",
+      "122",
+      "123",
+      "188",
+      "309"
+    ],
+    "note": "The added DP practice includes decoding, subarray states, circular choices, and stock inventory with transaction limits or cooldown. A one-dimensional input does not imply one scalar state is sufficient."
+  },
+  "25": {
+    "problemIds": [
+      "36",
+      "2013",
+      "149",
+      "74",
+      "240",
+      "427",
+      "909",
+      "329",
+      "118",
+      "120",
+      "221",
+      "6",
+      "48",
+      "54",
+      "73",
+      "289"
+    ],
+    "note": "Matrix and geometry extensions are included alongside grid DP: rotation, spiral traversal, Sudoku validation, simultaneous updates, quad trees, and point geometry. These are not all DP; use each card’s own reasoning rather than forcing the right/down recurrence."
+  },
+  "26": {
+    "problemIds": [
+      "279",
+      "494",
+      "312"
+    ],
+    "note": "Perfect Squares and Target Sum extend resource-total DP. Burst Balloons is a contrasting interval-DP extension: its state is a range and its key choice is the last balloon, not an item capacity."
+  },
+  "27": {
+    "problemIds": [
+      "392",
+      "131",
+      "5",
+      "647",
+      "97",
+      "115",
+      "10",
+      "312"
+    ],
+    "note": "Beyond two-prefix DP, practice includes center expansion for palindromes, palindrome partitioning, regex matching, and interval DP. Distinguish subsequences, contiguous substrings, and range states before choosing a recurrence."
+  },
+  "28": {
+    "problemIds": [
+      "11",
+      "452",
+      "853",
+      "332",
+      "502",
+      "621",
+      "53",
+      "122",
+      "45",
+      "134",
+      "135",
+      "169",
+      "678",
+      "763",
+      "846",
+      "1899",
+      "12",
+      "68"
+    ],
+    "note": ""
+  },
+  "29": {
+    "problemIds": [
+      "271",
+      "212",
+      "14",
+      "28"
+    ],
+    "note": "Prefix-related extensions include a trie-guided board search, longest common prefix, length-prefixed string encoding, and KMP substring search. KMP uses a prefix-function table, not trie nodes."
+  },
+  "30": {
+    "problemIds": [
+      "69",
+      "202",
+      "7",
+      "9",
+      "12",
+      "13",
+      "43",
+      "50",
+      "66",
+      "67",
+      "137",
+      "172",
+      "190",
+      "201",
+      "268",
+      "371",
+      "289"
+    ],
+    "note": "Integer-arithmetic extensions cover decimal carries, Roman numerals, digit reversal, exponentiation, and factorial factors. Bitwise identities remain useful where the representation supports them; the other cards explain their own arithmetic rules."
+  }
+}

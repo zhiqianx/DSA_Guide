@@ -12,8 +12,17 @@ const dataPattern = /(<script id="guide-data" type="application\/json">)([\s\S]*
 test('retains the original problem bank, method IDs, and page shell', async () => {
   const html = await renderPage();
   const data = JSON.parse(html.match(dataPattern)[2]);
-  const { lessons, ...originalData } = data;
-  assert.deepEqual(originalData, JSON.parse(original.match(dataPattern)[2]));
+  const originalData = JSON.parse(original.match(dataPattern)[2]);
+  for (const [id, problem] of Object.entries(originalData.problems)) assert.deepEqual(data.problems[id], problem);
+  for (const chapter of data.chapters) {
+    const before = originalData.chapters.find(c => c.id === chapter.id);
+    const { problems, practiceNote, ...metadata } = chapter;
+    const { problems: originalProblems, ...originalMetadata } = before;
+    assert.deepEqual(metadata, originalMetadata);
+    assert.deepEqual(problems.slice(0, originalProblems.length), originalProblems);
+    assert.ok(problems.length > originalProblems.length, `Method ${chapter.id} needs more practice`);
+    assert.equal(new Set(problems).size, problems.length);
+  }
   const shell = page => page.replace(dataPattern, '$1$3')
     .replace(/<style>[\s\S]*?<\/style>/, '<style></style>')
     .replace(/<script>[\s\S]*?<\/script>/, '<script></script>');
@@ -21,10 +30,48 @@ test('retains the original problem bank, method IDs, and page shell', async () =
   const originalStyles = original.match(/<style>([\s\S]*?)<\/style>/)[1];
   assert.ok(html.match(/<style>([\s\S]*?)<\/style>/)[1].startsWith(originalStyles));
   assert.equal(data.chapters.length, 30);
-  assert.equal(Object.keys(data.problems).length, 89);
+  assert.equal(Object.keys(data.problems).length, 259);
   for (const chapter of data.chapters) {
     for (const id of chapter.problems) assert.ok(data.problems[id], `Missing problem ${id}`);
   }
+});
+
+test('fully covers the three verified rosters with complete deduplicated problem entries', async () => {
+  const data = JSON.parse((await renderPage()).match(dataPattern)[2]);
+  const counts = { hot100: 100, interview150: 150, neetcode150: 150 };
+  assert.deepEqual(Object.keys(data.collections).sort(), Object.keys(counts).sort());
+  const union = new Set();
+  const assigned = new Set(data.chapters.flatMap(chapter => chapter.problems));
+  for (const [key, count] of Object.entries(counts)) {
+    const collection = data.collections[key];
+    assert.equal(collection.expectedCount, count);
+    assert.equal(collection.problemIds.length, count);
+    assert.equal(new Set(collection.problemIds).size, count);
+    assert.equal(collection.verifiedOn, '2026-09-28');
+    assert.match(collection.url, /^https:\/\/(leetcode\.com|neetcode\.io)\//);
+    assert.ok(collection.rosterSource);
+    for (const id of collection.problemIds) {
+      assert.ok(data.problems[id], `${key}: missing ${id}`);
+      assert.ok(assigned.has(id), `${key}: unassigned ${id}`);
+      union.add(id);
+    }
+  }
+  assert.equal(union.size, 240);
+  assert.equal(Object.keys(data.problems).filter(id => !union.has(id)).length, 19);
+  for (const [id, problem] of Object.entries(data.problems)) {
+    assert.equal(problem.id, id);
+    assert.ok(assigned.has(id));
+    for (const key of ['title', 'prompt', 'example', 'approach', 'code', 'cost']) assert.ok(problem[key]?.trim(), `${id}: ${key}`);
+    assert.ok(['Easy', 'Medium', 'Hard'].includes(problem.diff));
+    assert.match(problem.url, /^https:\/\/leetcode\.com\/problems\/[^/]+\/$/);
+    assert.equal(problem.hints.length, 2);
+    assert.ok(problem.hints.every(hint => hint.trim()));
+    assert.doesNotMatch(problem.code, /TODO|UnsupportedOperationException/);
+  }
+  const extras = JSON.parse(await readFile(resolve(projectRoot, 'src/extra-problems.json'), 'utf8'));
+  const javaCases = JSON.parse(await readFile(resolve(projectRoot, 'tests/java-cases.json'), 'utf8'));
+  assert.equal(Object.keys(extras).length, 170);
+  assert.deepEqual(Object.keys(javaCases).sort(), Object.keys(extras).sort());
 });
 
 test('every method has complete teaching content and two valid worked examples', async () => {

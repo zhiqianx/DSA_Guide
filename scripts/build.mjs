@@ -7,14 +7,41 @@ export const distDir = resolve(projectRoot, 'dist');
 
 // Inline the source assets so the production page also works over file://.
 export async function renderPage() {
-  const [template, styles, data, app, lessons] = await Promise.all(
-    ['index.html', 'styles.css', 'guide.json', 'app.js', 'lessons.json'].map((name) =>
+  const [template, styles, data, app, lessons, extra, expansions, collections] = await Promise.all(
+    ['index.html', 'styles.css', 'guide.json', 'app.js', 'lessons.json',
+      'extra-problems.json', 'topic-expansions.json', 'collections.json'].map((name) =>
       readFile(resolve(projectRoot, 'src', name), 'utf8'),
     ),
   );
   const guide = JSON.parse(data);
   if (!Array.isArray(guide.chapters) || !guide.problems) {
     throw new Error('guide.json must contain chapters and problems.');
+  }
+  const additions = JSON.parse(extra);
+  for (const [id, problem] of Object.entries(additions)) {
+    if (guide.problems[id]) throw new Error(`Duplicate problem ID ${id}.`);
+    if (problem.id !== id || !problem.code || !problem.approach || !problem.cost || problem.hints?.length !== 2) {
+      throw new Error(`Incomplete problem ${id}.`);
+    }
+    guide.problems[id] = problem;
+  }
+  const topicAdditions = JSON.parse(expansions);
+  for (const chapter of guide.chapters) {
+    const expansion = topicAdditions[chapter.id];
+    if (!expansion?.problemIds?.length) throw new Error(`Method ${chapter.id} has no practice expansion.`);
+    chapter.problems = [...chapter.problems, ...expansion.problemIds];
+    chapter.practiceNote = expansion.note || '';
+    if (new Set(chapter.problems).size !== chapter.problems.length) throw new Error(`Duplicate practice in method ${chapter.id}.`);
+    for (const id of chapter.problems) if (!guide.problems[id]) throw new Error(`Missing problem ${id}.`);
+  }
+  const assigned = new Set(guide.chapters.flatMap(chapter => chapter.problems));
+  for (const id of Object.keys(guide.problems)) if (!assigned.has(id)) throw new Error(`Problem ${id} has no topic.`);
+  guide.collections = JSON.parse(collections);
+  for (const [key, collection] of Object.entries(guide.collections)) {
+    if (collection.problemIds.length !== collection.expectedCount || new Set(collection.problemIds).size !== collection.expectedCount) {
+      throw new Error(`Invalid ${key} roster count.`);
+    }
+    for (const id of collection.problemIds) if (!guide.problems[id]) throw new Error(`${key} is missing problem ${id}.`);
   }
   guide.lessons = JSON.parse(lessons);
   for (const chapter of guide.chapters) {

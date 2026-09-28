@@ -10,3 +10,6 @@
 /* Leave room for the existing sticky toolbar when jumping within a lesson. */
 [id^="lesson-"]{scroll-margin-top:125px}
 @media(max-width:780px){[id^="lesson-"]{scroll-margin-top:155px}}
+
+.coverage-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin:20px 0}.coverage-grid h3{font-size:18px}.coverage-grid .toolbar{margin-bottom:0}
+@media(max-width:1000px){.coverage-grid{grid-template-columns:1fr}}

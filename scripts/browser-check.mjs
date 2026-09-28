@@ -123,10 +123,35 @@ try {
   await waitFor("document.getElementById('notes-24')?.value === 'State means the first i characters.'");
   assert.equal(await evaluate("document.querySelector('[data-method=\"24\"]').value"), 'Confident');
   await route('practice', "document.getElementById('problemcount')");
-  assert.equal(await evaluate("document.querySelectorAll('#problemlist article').length"), 89);
+  assert.equal(await evaluate("document.querySelectorAll('#problemlist article').length"), 259);
   assert.equal(await evaluate("document.querySelector('[data-problem=\"139\"]').value"), 'Solved');
   await evaluate(`const search = document.getElementById('problemsearch'); search.value = 'word break'; search.dispatchEvent(new Event('input', {bubbles:true}));`);
   assert.equal(await evaluate("document.querySelectorAll('#problemlist article').length"), 1);
+  for (const [key, count] of [['hot100',100],['interview150',150],['neetcode150',150],['extras',19]]) {
+    await route(`practice?list=${key}`, `document.getElementById('problemcollection')?.value === '${key}' && document.querySelectorAll('#problemlist article').length === ${count}`);
+    assert.equal(await evaluate("document.querySelectorAll('#problemlist article').length"), count);
+    assert.equal(await evaluate("document.querySelectorAll('#problemlist details[open]').length"), 0);
+  }
+  await route('practice?list=hot100&q=LRU', "document.getElementById('problemsearch')?.value === 'LRU' && document.querySelectorAll('#problemlist article').length === 1");
+  await evaluate(`(() => { const select = document.querySelector('[data-problem="146"]'); select.value = 'Solved'; select.dispatchEvent(new Event('change', {bubbles:true})); })()`);
+  assert.equal(await evaluate("document.querySelector('[data-collection-solved=hot100]').textContent"), '2 / 100 solved');
+  assert.equal(await evaluate("document.querySelector('[data-collection-solved=interview150]').textContent"), '2 / 150 solved');
+  assert.equal(await evaluate("document.querySelector('[data-collection-solved=neetcode150]').textContent"), '2 / 150 solved');
+  await cdp('Page.reload');
+  await waitFor("document.getElementById('problemsearch')?.value === 'LRU' && document.querySelector('[data-problem=\"146\"]')?.value === 'Solved'");
+  await evaluate(`document.querySelector('[data-action="resetfilters"]').click()`);
+  assert.equal(await evaluate("document.querySelectorAll('#problemlist article').length"), 259);
+  assert.equal(await evaluate('location.hash'), '#practice');
+  await evaluate(`(() => { const list=document.getElementById('problemcollection'); list.value='neetcode150'; list.dispatchEvent(new Event('change',{bubbles:true})); const topic=document.getElementById('problemtopic');topic.value='14';topic.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('#problemlist article')].map(e=>e.id)"), ['problem-239']);
+  await route('practice?q=Clone%20Graph', "document.querySelector('#problem-133') && document.querySelectorAll('#problemlist article').length === 1");
+  await evaluate("document.querySelector('#problem-133 details.solution summary').click()");
+  assert.ok(await evaluate("document.querySelector('#problem-133 details.solution').textContent.includes('class Node')"));
+  await evaluate("document.querySelector('#problem-133 details.solution summary').click()");
+  await route('home', "document.querySelectorAll('.topic-card').length === 30");
+  await evaluate("document.querySelector('a[href=\"#practice?list=interview150\"]').click()");
+  await waitFor("document.querySelectorAll('#problemlist article').length === 150");
+  console.log('Passed 100/150/150 exact list filters, 19 extras, combined filters, shareable URLs, new-problem persistence, shared plan progress, and Node helper display.');
   await route('quiz', "document.getElementById('quizanswer')");
   assert.equal(await evaluate("document.getElementById('quizanswer').textContent"), '');
   await evaluate(`document.querySelector('[data-action="revealquiz"]').click()`);
@@ -143,6 +168,8 @@ try {
     const { data } = await cdp('Page.captureScreenshot', { format: 'png' });
     await writeFile(join(process.env.SCREENSHOT_DIR, name), Buffer.from(data, 'base64'));
   };
+  await route('practice?list=hot100', "document.getElementById('problemcollection')?.value === 'hot100'");
+  await screenshot('desktop-coverage.png');
   await route('method-24', "document.getElementById('notes-24')");
   await screenshot('desktop-lesson.png');
   await evaluate(`document.querySelector('[data-section="lesson-examples"]').click()`);
@@ -159,6 +186,9 @@ try {
   assert.equal(await evaluate('document.documentElement.scrollWidth > innerWidth'), false);
   await evaluate(`document.querySelector('[data-section="lesson-examples"]').click()`);
   assert.ok(await evaluate("document.getElementById('lesson-examples').getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom"));
+  await route('practice?list=neetcode150', "document.getElementById('problemcollection')?.value === 'neetcode150'");
+  assert.equal(await evaluate('document.documentElement.scrollWidth > innerWidth'), false);
+  await screenshot('mobile-coverage.png');
   assert.deepEqual(browserErrors, []);
   console.log('Passed mobile layout/menu, mobile lesson jumps, and zero browser console errors.');
 } finally {
