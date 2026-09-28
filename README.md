@@ -44,9 +44,27 @@ All CSS, JavaScript, and lesson data are embedded during the build. No server is
 
 For static hosting, use `npm run build` as the build command and `dist` as the publish directory. Navigation uses URL hashes, so no server routing rules are needed.
 
+## Publish automatically with GitHub Pages
+
+The workflow in `.github/workflows/pages.yml` checks, tests, builds, and publishes `dist/` on every push to `main`. No local server or manual copying to `docs/` is required.
+
+One-time setup:
+
+1. Open the repository's [Settings → Pages](https://github.com/zhiqianx/DSA_Guide/settings/pages).
+2. Under **Build and deployment → Source**, select **GitHub Actions**. If you previously selected **Deploy from a branch**, switch it to **GitHub Actions**.
+3. Commit and push the workflow and README changes to `main`.
+4. Open the repository's **Actions** tab and wait for **Deploy guide to GitHub Pages** to finish successfully.
+5. Open **https://zhiqianx.github.io/DSA_Guide/**. The deployment also exposes the published URL in its `github-pages` environment.
+
+For later updates, edit the source, commit, and push to `main`; GitHub rebuilds and publishes automatically. You can also select the workflow under **Actions → Deploy guide to GitHub Pages → Run workflow**, choosing `main`, to retry after changing Pages settings. If a run fails, open its failed step to see the error. The hosted deployment itself must be verified after the first push.
+
+GitHub Pages availability depends on repository visibility and your GitHub plan. See [GitHub's custom Pages workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages). Export your progress from the local guide and import it on the hosted site if you want to move it there.
+
 ## Project structure
 
 ```text
+.github/workflows/
+  pages.yml        Build, test, and deploy to GitHub Pages on pushes to main
 src/
   index.html       Page shell and build placeholders
   styles.css       Original styling, including mobile and print layouts
